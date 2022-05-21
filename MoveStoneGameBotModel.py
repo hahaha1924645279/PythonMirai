@@ -199,7 +199,7 @@ class MoveStoneBotModel:
         if self.getNowOperator() != playerID:
             self.active = False
             return self.makeDict()
-        if re.match("A [0-9]+ [0-9]+", Str):
+        if re.match("A [0-9]+ [0-9]+", Str) and self.state == "running":
             self.active = True
             if int(self.autoArgument[1]) == 0:
                 self.legal = False
@@ -234,7 +234,7 @@ class MoveStoneBotModel:
                 self.solveByBot(playerID)
                 self.updateGameInfo()
             return self.makeDict()
-        if re.match("B [0-9]+ [0-9]+", Str):
+        if re.match("B [0-9]+ [0-9]+", Str) and self.state == "running":
             self.active = True
             if int(self.autoArgument[1]) == 0:
                 self.legal = False

@@ -89,7 +89,7 @@ class MoveStone:
     def running(self, playerID, Str):
         self.updateArgument(Str)
         self.updateGameInfo()
-        if re.match("挪石头掀桌", Str):
+        if re.match("挪石头掀桌", Str) and self.state != "waiting":
             self.active = True
             if time.time() - self.lastOperationTime < 5*60:
                 self.legal = False
@@ -163,7 +163,7 @@ class MoveStone:
         if self.getNowOperator() != playerID:
             self.active = False
             return self.makeDict()
-        if re.match("A [0-9]+ [0-9]+", Str):
+        if re.match("A [0-9]+ [0-9]+", Str) and self.state == "running":
             self.active = True
             if int(self.autoArgument[1]) == 0:
                 self.legal = False
@@ -193,7 +193,7 @@ class MoveStone:
                     else:
                         self.scoreChangeList[qq] = 10
             return self.makeDict()
-        if re.match("B [0-9]+ [0-9]+", Str):
+        if re.match("B [0-9]+ [0-9]+", Str) and self.state == "running":
             self.active = True
             if int(self.autoArgument[1]) == 0:
                 self.legal = False

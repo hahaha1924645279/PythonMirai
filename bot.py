@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import random
+import threading
 import miraicle
 import json
 import re
@@ -7,6 +8,7 @@ import time
 import requests
 import MoveStoneGame
 import MoveStoneGameBotModel
+import FightTheLandlordGame
 from requests.packages import urllib3
 
 urllib3.disable_warnings()
@@ -47,6 +49,9 @@ contestInformListPath = ".\\Data\\contestInformList.txt"
 contestInformList = {}
 groupMoveStone = {}
 personalMoveStone = {}
+groupFightTheLandlord = {}
+groupKickBotNumberPath = ".\\Data\\groupKickBotNumber.txt"
+groupKickBotNumber = {}
 
 
 with open(userScorePath, 'r') as f:
@@ -77,6 +82,8 @@ with open(bannedWordsMuteStatePath, 'r') as f:
     bannedWordsMuteState = json.load(f)
 with open(refusePassOnAMsgStatePath, 'r') as f:
     refusePassOnAMsgState = json.load(f)
+with open(groupKickBotNumberPath, 'r') as f:
+    groupKickBotNumber = json.load(f)
 
 
 def getCodeForcesContestInfo():
@@ -159,6 +166,8 @@ def update(bot):
         f.write(json.dumps(bannedWordsMuteState))
     with open(refusePassOnAMsgStatePath, 'w') as f:
         f.write(json.dumps(refusePassOnAMsgState))
+    with open(groupKickBotNumberPath, 'w') as f:
+        f.write(json.dumps(groupKickBotNumber))
 
 
 @miraicle.scheduled_job(miraicle.Scheduler.every().day.at('12:00:00'))
@@ -217,6 +226,27 @@ def clearTeaRoomState(bot: miraicle.Mirai):
             teaRoomState[qq] = False
 
 
+@miraicle.Mirai.receiver('BotLeaveEventKick')
+def solveKickBotMessage(bot: miraicle.Mirai, msg: json):
+    groupId = msg.get('group', {}).get('id', 0)
+    groupKickBotNumber[str(groupId)] = getKickBotNumber(groupId) + 1
+
+
+def getKickBotNumber(groupId):
+    return groupKickBotNumber.get(str(groupId), 0)
+
+
+@miraicle.Mirai.receiver('BotInvitedJoinGroupRequestEvent')
+def solveInvitedMessage(bot: miraicle.Mirai, msg: json):
+    if not admin.get("kickBotRefuse", False):
+        bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
+        return
+    if getKickBotNumber(msg.get('groupId', 0)) > 0:
+        bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 1)
+    else:
+        bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
+
+
 @miraicle.Mirai.receiver('MemberMuteEvent')
 def solveGroupMuteEvent(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     qq = msg.get('member', {}).get('id', 0)
@@ -227,6 +257,8 @@ def solveGroupMuteEvent(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
 
 @miraicle.Mirai.receiver('GroupMessage')
 def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
+    # if msg.group != 261925581:
+    #     return
     updateTime()
     info = _Info()
     info.autoArguments = msg.plain.split()
@@ -265,8 +297,15 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
         addMsgCount(info.autoGroupNumber, info.autoFriendNumber, 0)
         output(info, "请不要刷屏", True)
         lianCount[info.autoFriendNumber] = 0
-    runningMoveStoneGame(info)
-    messageMatchReply(info)
+    t1 = threading.Thread(target=runningMoveStoneGame, args=(info,))
+    t2 = threading.Thread(target=runningFightTheLandlordGame, args=(info,))
+    t3 = threading.Thread(target=messageMatchReply, args=(info,))
+    t1.start()
+    t2.start()
+    t3.start()
+    # runningMoveStoneGame(info)
+    # runningFightTheLandlordGame(info)
+    # messageMatchReply(info)
 
 
 @miraicle.Mirai.receiver('TempMessage')
@@ -324,6 +363,15 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
     info.autoFullMsg = getFullMsgInfo(info.autoMsgJson)
     info.autoNoSpaceMsg = getNoSpaceMsg(info.autoPlain)
     if info.autoFriendNumber == 1924645279:
+        if msg.plain == "被踢自动拒绝邀请":
+            admin["kickBotRefuse"] = True
+            output(info, "已更新")
+        if msg.plain == "被踢不自动拒绝邀请":
+            admin["kickBotRefuse"] = False
+            output(info, "已更新")
+        if msg.plain == "清空被踢数据":
+            clearKickBotNumber()
+            output(info, "已清空")
         someTest(info)
     if getName(info.autoFriendNumber) == "无名氏":
         setName(info, info.autoName)
@@ -336,6 +384,11 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 
 def someTest(info):
     pass
+
+
+def clearKickBotNumber():
+    for group in groupKickBotNumber:
+        groupKickBotNumber[group] = 0
 
 
 def changeContestInfoStatue(qq, statue):
@@ -485,7 +538,9 @@ def getMsgCount(groupNumber, number):
 
 
 def messageMatchReply(info):
-    runningMoveStoneGameBotModel(info)
+    t1 = threading.Thread(target=runningMoveStoneGameBotModel, args=(info,))
+    t1.start()
+    # runningMoveStoneGameBotModel(info)
     if re.match("开启cf比赛提醒", info.autoPlain):
         output(info, "好的")
         changeContestInfoStatue(info.autoFriendNumber, True)
@@ -515,8 +570,8 @@ def messageMatchReply(info):
         setRefusePassOnAMsgState(info.autoFriendNumber, False)
         return
     if re.match("违禁词列表", info.autoPlain):
-        output(info, "好的")
-        output(info, getBannedWordsList(info.autoGroupNumber))
+        output(info, "该功能已禁用")
+        # output(info, getBannedWordsList(info.autoGroupNumber))
         return
     if info.autoPlain == "开启便捷茶馆":
         output(info, "好的", True)
@@ -714,6 +769,9 @@ def messageMatchReply(info):
     if info.autoPlain == "挪石头":
         showMoveStoneGame(info)
         return
+    if info.autoPlain == "斗地主":
+        showFightLandlordGame(info)
+        return
     if info.autoPlain == "积分负排行":
         output(info, getScoreRankGreater())
         return
@@ -763,7 +821,7 @@ def getScoreRankGreater():
             break
         Str += f"\n【{getName(it[0])}】({it[0]}): {it[1]}"
         i += 1
-        if i == 30:
+        if i == 15:
             break
     return Str
 
@@ -777,16 +835,34 @@ def getScoreRankLower():
             break
         Str += f"\n【{getName(it[0])}】({it[0]}): {it[1]}"
         i += 1
-        if i == 30:
+        if i == 15:
             break
     return Str
 
 
 def showScoreRank(info):
-    Str = "用于获取积分排行，至多只显示前30名\n\
+    Str = "用于获取积分排行，至多只显示前15名\n\
 指令如下:\n\
 [积分正排行]\n\
 [积分负排行]"
+    output(info, Str)
+
+
+def showFightLandlordGame(info):
+    Str = "斗地主，经典玩法，需要三名玩家共同游戏，玩家需要添加机器人为好友，以便接收自己的牌信息。其需要用到的指令如下:\n\
+[加入斗地主]\n\
+[离开斗地主]\n\
+[斗地主掀桌](玩家长时间未操作，任意群成员可掀桌)\n\
+[斗地主对局信息]\n\
+[我牌呢](当你找不到自己的牌时可以发送看看)\n\
+[叫地主]\n\
+[不叫]\n\
+[明牌](仅在开始出牌前可以进行操作)\n\
+[出 ***](出自己的牌，字母统一大写)\n\
+[过](要不起时就过牌)\n\n\
+出牌示例: [出 8910JQ]\n\
+出牌解释: 牌型：顺子，牌组：[8,9,10,J,Q]\n\
+牌的前后位置不影响牌组结构"
     output(info, Str)
 
 
@@ -802,7 +878,7 @@ def showMoveStoneGame(info):
 [B x k]\n\
 [挪石头对局信息]\n\
 [挪石头投降](主动投降也许可以少扣点积分)\n\
-[挪石头掀桌](长时间不操作可以中断游戏，并给予两玩家一定惩罚)\n\
+[挪石头掀桌]((玩家长时间未操作，任意群成员可掀桌))\n\
 [开始人机挪石头](单人游戏,可私聊操作)\n\
 [人机挪石头对局信息]\n\
 [人机挪石头投降]\n\
@@ -813,7 +889,8 @@ def showMoveStoneGame(info):
 
 def showGameList(info):
     Str = "游戏列表:\n\
-挪石头"
+挪石头\n\
+斗地主"
     output(info, Str)
 
 
@@ -859,7 +936,7 @@ def showGroupRegulateSystem(info):
     Str = "\
 群管系统是一项便捷辅助进行对群员执行操作的功能,\
 本功能的使用前提是机器人在所在群拥有管理员权限。\
-并且使用者需是机器人的管理人员\n\
+并且使用者需是机器人的管理人员，或者是群的管理人员\n\
 具有如下指令:\n\
 [禁言@某人(可以多个At) 时间(分钟,前面一定要有空格)]\n\
 [解除禁言@某人(可以多个At)]\n\
@@ -933,16 +1010,12 @@ def queryTeaRoomOnlineList():
 
 def showMenu(info):
     menu = "\
-——菜单——\n\
-Ο设置昵称Ο\n\
-Ο个人信息Ο\n\
-Ο茶馆系统Ο\n\
-Ο群管系统Ο\n\
-Ο传话系统Ο\n\
-Ο反馈系统Ο\n\
-Ο便民工具Ο\n\
-Ο娱乐系统Ο\n\
-Ο积分排行Ο"
+      『   菜   单   』\n\
+Ο设置昵称Ο反馈系统Ο\n\
+Ο个人信息Ο便民工具Ο\n\
+Ο茶馆系统Ο娱乐系统Ο\n\
+Ο群管系统Ο积分排行Ο\n\
+Ο传话系统Ο等待开发Ο"
     output(info,  menu)
 
 
@@ -1058,9 +1131,11 @@ def updateTime():
 
 
 #   回复信息
-def output(info,  Str, needAt=False, topImg=None):
+def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
+    if newQQ != 0:
+        info.autoFriendNumber = newQQ
     if topImg is not None:
-        if not info.isFriend:
+        if not info.isFriend and not personal:
             if needAt:
                 info.autoBot.send_group_msg(
                     info.autoGroupNumber,
@@ -1101,7 +1176,7 @@ def output(info,  Str, needAt=False, topImg=None):
                 if jsonData.get('msg', 'None') == 'success':
                     return
     else:
-        if not info.isFriend:
+        if not info.isFriend and not personal:
             if needAt:
                 info.autoBot.send_group_msg(
                     info.autoGroupNumber,
@@ -1249,6 +1324,83 @@ def runningMoveStoneGameBotModel(info: _Info):
         changeScore(Dict.get("scoreChangeList", {}))
         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
         personalMoveStone[info.autoFriendNumber].reset()
+
+
+#   斗地主
+def runningFightTheLandlordGame(info: _Info):
+    if groupFightTheLandlord.get(info.autoGroupNumber, None) is None:
+        groupFightTheLandlord[info.autoGroupNumber] = FightTheLandlordGame.FightTheLandlord()
+    Dict:dict = groupFightTheLandlord[info.autoGroupNumber].running(info.autoFriendNumber, info.autoPlain)
+    if not Dict.get("active", False):
+        return
+    if Dict.get("breakGame", False):
+        output(info, "有人掀桌！游戏状态已重置！对局玩家受到对应奖惩")
+        changeScore(Dict.get("scoreChangeList", {}))
+        output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        groupFightTheLandlord[info.autoGroupNumber].reset()
+        return
+    if Dict.get("finish", False):
+        output(info, f"对局结束！获胜方:{Dict.get('winner', 'None')}")
+        Str = ""
+        for qq in Dict.get("playerArr", []):
+            tempStr = groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(qq)
+            if tempStr != "":
+                Str += f"玩家【{getName(qq)}】({qq})剩余的牌:\n{tempStr}\n"
+        output(info, Str)
+        changeScore(Dict.get("scoreChangeList", {}))
+        output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        groupFightTheLandlord[info.autoGroupNumber].reset()
+        return
+    if not Dict.get("legal", False):
+        output(info, Dict.get("errorBack", ""))
+        if Dict.get("errorBack", "") == "玩家查询牌信息，已将牌再次发送给玩家":
+            output(info, f"你的牌:\
+                            \n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(info.autoFriendNumber)}",
+                   personal=True)
+            return
+        if Dict.get("errorBack", "") == "玩家明牌":
+            output(info, f"【{getName(info.autoFriendNumber)}】({info.autoFriendNumber})的牌:\
+            \n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(info.autoFriendNumber)}")
+        if Dict.get("errorBack", "") == "玩家叫地主":
+            qq = Dict.get("nowOperator", 0)
+            output(info, f"接下来轮到【{getName(qq)}】({qq})进行操作")
+        if Dict.get("errorBack", "") == "无人叫地主":
+            output(info, "由于无人叫地主，已重新发牌")
+            for qq in Dict.get("playerArr", []):
+                output(info, f"你的牌:\n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(qq)}"\
+                       , personal=True, newQQ=qq)
+            qq = Dict.get("nowOperator", 0)
+            output(info, f"接下来轮到【{getName(qq)}】({qq})进行操作\n叫地主环节,发送[叫地主]或[不叫]")
+            return
+        if Dict.get("errorBack", "") == "叫地主结束":
+            landlord = Dict.get("landlord", 0)
+            output(info, f'玩家【{getName(landlord)}】({landlord})成为地主！\n地主牌:\
+{groupFightTheLandlord[info.autoGroupNumber].queryLandlordPoker()}')
+            output(info, f"你的牌:\n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(landlord)}"\
+                   , personal=True, newQQ=landlord)
+            output(info, "接下来请地主出牌\n出牌示例:[出 910JQK]\n示例解释:  牌型:顺子,牌组:[9,10,J,Q,K]\n要不起请发送[过]")
+            return
+        if Dict.get("errorBack", "") == "玩家不叫":
+            qq = Dict.get("nowOperator", 0)
+            output(info, f"接下来轮到【{getName(qq)}】({qq})进行操作")
+    else:
+        output(info, Dict.get("normalBack", ""))
+        if Dict.get("state", "") == "对局中":
+            if groupFightTheLandlord[info.autoGroupNumber].queryLightPoker(info.autoFriendNumber):
+                output(info, f"【{getName(info.autoFriendNumber)}】({info.autoFriendNumber})的牌:\
+                \n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(info.autoFriendNumber)}")
+            output(info, f"你的牌:\
+                \n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(info.autoFriendNumber)}", personal=True)
+            qq = Dict.get("nowOperator", 0)
+            output(info, f"接下来轮到【{getName(qq)}】({qq})进行操作")
+            return
+        if Dict.get("state", "") == "叫地主":
+            qq = Dict.get("nowOperator", 0)
+            output(info, f"接下来轮到【{getName(qq)}】({qq})进行操作\n叫地主环节,发送[叫地主]或[不叫]")
+            for qq in Dict.get("playerArr", []):
+                output(info, f"你的牌:\n{groupFightTheLandlord[info.autoGroupNumber].queryPokerInfo(qq)}"\
+                       , personal=True, newQQ=qq)
+            return
 
 
 robotQQ = 1784518480
