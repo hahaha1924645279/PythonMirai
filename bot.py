@@ -10,7 +10,7 @@ import MoveStoneGame
 import MoveStoneGameBotModel
 import FightTheLandlordGame
 from requests.packages import urllib3
-  
+
 urllib3.disable_warnings()
 groupList = []
 finishSign = False
