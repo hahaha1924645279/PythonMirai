@@ -9,6 +9,7 @@ import requests
 import MoveStoneGame
 import MoveStoneGameBotModel
 import FightTheLandlordGame
+import miraicle.createImg as createImg
 from requests.packages import urllib3
 
 urllib3.disable_warnings()
@@ -52,6 +53,7 @@ personalMoveStone = {}
 groupFightTheLandlord = {}
 groupKickBotNumberPath = ".\\Data\\groupKickBotNumber.txt"
 groupKickBotNumber = {}
+lastRecallMsg = {}
 
 
 with open(userScorePath, 'r') as f:
@@ -238,16 +240,12 @@ def getKickBotNumber(groupId):
 
 @miraicle.Mirai.receiver('BotInvitedJoinGroupRequestEvent')
 def solveInvitedMessage(bot: miraicle.Mirai, msg: json):
-    print(miraicle.utils.color("检测到拉群邀请！",'blue'))
     if not admin.get("kickBotRefuse", False):
-        print(miraicle.utils.color("无限制，理当同意邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
         return
     if getKickBotNumber(msg.get('groupId', 0)) > 0:
-        print(miraicle.utils.color("理当拒绝邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 1)
     else:
-        print(miraicle.utils.color("理当同意邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
 
 
@@ -277,6 +275,7 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     info.autoMsgId = msg.id
     info.autoAtQQ = getAllAtQQ(info.autoMsgJson)
     info.autoNoSpaceMsg = getNoSpaceMsg(info.autoPlain)
+    info.autoFullMsg = getFullMsgInfo(info.autoMsgJson)
     if getName(info.autoFriendNumber) == "无名氏":
         setName(info, info.autoName)
     # changeLastSendGroup(info.autoFriendNumber, info.autoGroupNumber)
@@ -574,8 +573,7 @@ def messageMatchReply(info):
         setRefusePassOnAMsgState(info.autoFriendNumber, False)
         return
     if re.match("违禁词列表", info.autoPlain):
-        output(info, "该功能已禁用")
-        # output(info, getBannedWordsList(info.autoGroupNumber))
+        showBannedWordsList(info)
         return
     if info.autoPlain == "开启便捷茶馆":
         output(info, "好的", True)
@@ -743,6 +741,10 @@ def messageMatchReply(info):
                     info.autoBot.unmute_all(info.autoGroupNumber)
                     output(info, "好的")
             return
+    if info.autoPlain == "我信息呢":
+        output(info, "好啦好啦，发给你就是了...")
+        output(info, lastRecallMsg.get(f'{str(info.autoFriendNumber)}', ""), personal=True)
+        return
     if info.autoPlain == "个人信息":
         queryPersonalInformation(info)
         return
@@ -811,9 +813,33 @@ def messageMatchReply(info):
             return
     if checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg) and not info.isFriend:
         output(info, "检测到违禁词")
+        lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
         bot.recall(info.autoMsgId)
         if getBannedWordsMuteState(info.autoGroupNumber):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
+
+
+def showBannedWordsList(info):
+    output(info, "请稍等...")
+    Str = "违禁词列表：\n"
+    len = 0
+    lenMax = 200
+    textSize = 20
+    tempJson = bannedWords.get(str(info.autoGroupNumber), {})
+    for words in tempJson:
+        if tempJson[words]:
+            Str += " "
+            for c in words:
+                Str += c
+                len += textSize
+                if len > lenMax*2 - 30:
+                    Str += "\n"
+                    len = 0
+    imgPath = createImg.CreateImg(Str, fontSize=textSize)
+    # output(info, f"当前路径为{imgPath}")
+    # output(info, rf"{imgPath}")
+    img = miraicle.Image(url=rf'{imgPath}')
+    output(info,"",topImg=img)
 
 
 def getScoreRankGreater():
@@ -954,7 +980,8 @@ def showGroupRegulateSystem(info):
 [刷屏限制 发言数]\n\
 [开启违禁词禁言]\n\
 [关闭违禁词禁言]\n\
-[违禁词禁言时长 时间(单位：分钟)]"
+[违禁词禁言时长 时间(单位：分钟)]\n\
+[我信息呢](当你被机器人撤回消息时，可以发送看看)"
     output(info,  Str)
 
 
@@ -1136,8 +1163,9 @@ def updateTime():
 
 #   回复信息
 def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
+    aimQQ = info.autoFriendNumber
     if newQQ != 0:
-        info.autoFriendNumber = newQQ
+        aimQQ = newQQ
     if topImg is not None:
         if not info.isFriend and not personal:
             if needAt:
@@ -1160,7 +1188,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 )
         else:
             if info.autoBot.send_friend_msg(
-                    info.autoFriendNumber,
+                    aimQQ,
                     msg=[
                         topImg,
                         miraicle.MiraiCode(Str)
@@ -1168,10 +1196,9 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
             ).get('msg', 'None') == 'success':
                 return
             for groupNum in groupList:
-                print(groupNum)
                 jsonData = info.autoBot.send_temp_msg(
                     groupNum,
-                    int(info.autoFriendNumber),
+                    int(aimQQ),
                     msg=[
                         topImg,
                         miraicle.MiraiCode(Str)
@@ -1185,7 +1212,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 info.autoBot.send_group_msg(
                     info.autoGroupNumber,
                     msg=[
-                        miraicle.At(info.autoFriendNumber),
+                        miraicle.At(aimQQ),
                         miraicle.Plain("\n"),
                         miraicle.MiraiCode(f"{Str}")
                     ]
@@ -1199,7 +1226,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 )
         else:
             if info.autoBot.send_friend_msg(
-                    info.autoFriendNumber,
+                    aimQQ,
                     msg=[
                         miraicle.MiraiCode(Str)
                     ]
@@ -1209,7 +1236,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 print(groupNum)
                 jsonData = info.autoBot.send_temp_msg(
                     groupNum,
-                    int(info.autoFriendNumber),
+                    int(aimQQ),
                     msg=[
                         miraicle.MiraiCode(Str)
                     ]
@@ -1228,7 +1255,6 @@ def getAllAtQQ(jsonInfo):
 
 
 def getFullMsgInfo(jsonInfo):
-    print(jsonInfo)
     Str = ""
     msgChain = jsonInfo.get('messageChain', None)
     for dic in msgChain:
