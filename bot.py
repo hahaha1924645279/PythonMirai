@@ -238,12 +238,16 @@ def getKickBotNumber(groupId):
 
 @miraicle.Mirai.receiver('BotInvitedJoinGroupRequestEvent')
 def solveInvitedMessage(bot: miraicle.Mirai, msg: json):
+    print(miraicle.utils.color("检测到拉群邀请！",'blue'))
     if not admin.get("kickBotRefuse", False):
+        print(miraicle.utils.color("无限制，理当同意邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
         return
     if getKickBotNumber(msg.get('groupId', 0)) > 0:
+        print(miraicle.utils.color("理当拒绝邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 1)
     else:
+        print(miraicle.utils.color("理当同意邀请！",'blue'))
         bot.handle_group_invation(msg.get('eventId', 0), msg.get('fromId', 0), msg.get('groupId', 0), 0)
 
 
@@ -1224,6 +1228,7 @@ def getAllAtQQ(jsonInfo):
 
 
 def getFullMsgInfo(jsonInfo):
+    print(jsonInfo)
     Str = ""
     msgChain = jsonInfo.get('messageChain', None)
     for dic in msgChain:
