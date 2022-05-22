@@ -825,15 +825,15 @@ def runCheckExistBannedWords(info):
         if getBannedWordsMuteState(info.autoGroupNumber):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
         return
-    if info.autoImage is not None:
-        temp = info.autoImage.to_json().get('url', '')
-        Str = ImageToText.getTextFromImage(temp)
-        if checkExistBannedWords(info.autoGroupNumber, Str):
-            output(info, "检测到违禁词")
-            lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
-            info.autoBot.recall(info.autoMsgId)
-            if getBannedWordsMuteState(info.autoGroupNumber):
-                info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
+    # if info.autoImage is not None:
+    #     temp = info.autoImage.to_json().get('url', '')
+    #     Str = ImageToText.getTextFromImage(temp)
+    #     if checkExistBannedWords(info.autoGroupNumber, Str):
+    #         output(info, "检测到违禁词")
+    #         lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
+    #         info.autoBot.recall(info.autoMsgId)
+    #         if getBannedWordsMuteState(info.autoGroupNumber):
+    #             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
 
 
 def showBannedWordsList(info):

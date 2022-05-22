@@ -1,5 +1,5 @@
 import requests
-url = 'http://localhost:8089/api/tr-run/'
+url = 'https://localhost:8089/api/tr-run/'
 img1_file = {
     'file': open('1.jpg', 'rb')
 }
