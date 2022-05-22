@@ -10,6 +10,7 @@ import MoveStoneGame
 import MoveStoneGameBotModel
 import FightTheLandlordGame
 import miraicle.createImg as createImg
+import ImageToText
 from requests.packages import urllib3
 
 urllib3.disable_warnings()
@@ -259,8 +260,6 @@ def solveGroupMuteEvent(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
 
 @miraicle.Mirai.receiver('GroupMessage')
 def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
-    # if msg.group != 261925581:
-    #     return
     updateTime()
     info = _Info()
     info.autoArguments = msg.plain.split()
@@ -814,9 +813,27 @@ def messageMatchReply(info):
     if checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg) and not info.isFriend:
         output(info, "检测到违禁词")
         lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
-        bot.recall(info.autoMsgId)
+        info.autoBot.recall(info.autoMsgId)
         if getBannedWordsMuteState(info.autoGroupNumber):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
+
+def runCheckExistBannedWords(info):
+    if checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg):
+        output(info, "检测到违禁词")
+        lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
+        info.autoBot.recall(info.autoMsgId)
+        if getBannedWordsMuteState(info.autoGroupNumber):
+            info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
+        return
+    if info.autoImage is not None:
+        temp = info.autoImage.to_json().get('url', '')
+        Str = ImageToText.getTextFromImage(temp)
+        if checkExistBannedWords(info.autoGroupNumber, Str):
+            output(info, "检测到违禁词")
+            lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
+            info.autoBot.recall(info.autoMsgId)
+            if getBannedWordsMuteState(info.autoGroupNumber):
+                info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
 
 
 def showBannedWordsList(info):
