@@ -602,6 +602,8 @@ def passOnMsgSystem(info):
 
 def groupRegulateSystem(info):
     if not info.isFriend:
+        t1 = threading.Thread(target=runCheckExistBannedWords, args=(info,))
+        t1.start()
         t4 = threading.Thread(target=flushScreenCheck, args=(info,))
         t4.start()
     if info.autoPlain == "群管系统":
@@ -821,6 +823,9 @@ def scoreRankSystem(info):
 
 
 def messageMatchReply(info):
+    #   群管系统
+    t7 = threading.Thread(target=groupRegulateSystem, args=(info,))
+    t7.start()
     #   个人信息系统
     t1 = threading.Thread(target=personalInformationSystem, args=(info,))
     t1.start()
@@ -839,9 +844,6 @@ def messageMatchReply(info):
     #   娱乐系统
     t6 = threading.Thread(target=gameSystem, args=(info,))
     t6.start()
-    #   群管系统
-    t7 = threading.Thread(target=groupRegulateSystem, args=(info,))
-    t7.start()
     #   传话系统
     t8 = threading.Thread(target=passOnMsgSystem, args=(info,))
     t8.start()
@@ -869,8 +871,8 @@ def messageMatchReply(info):
 def runCheckExistBannedWords(info):
     if not info.isFriend and checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg):
         output(info, "检测到违禁词")
-        lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
         info.autoBot.recall(info.autoMsgId)
+        lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
         if getBannedWordsMuteState(info.autoGroupNumber):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
         return
