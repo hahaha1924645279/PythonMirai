@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from concurrent.futures import thread
 import random
 import threading
 import miraicle
@@ -7,7 +8,7 @@ import re
 import time
 import requests
 import MoveStoneGame
-import MoveStoneGameBotModel
+# import MoveStoneGameBotModel
 import FightTheLandlordGame
 import miraicle.createImg as createImg
 import ImageToText
@@ -18,41 +19,41 @@ groupList = []
 finishSign = False
 st = time.strftime("%H:%M:%S", time.localtime())
 owner = 1924645279
-adminPath = '.\\Data\\admin.txt'
+adminPath = './Data/admin.txt'
 admin = {}
-userScorePath = '.\\Data\\userScore.txt'
+userScorePath = './Data/userScore.txt'
 userScore = {}
-msgMatchPath = '.\\Data\\msgMatch.txt'
+msgMatchPath = './Data/msgMatch.txt'
 msgMatch = {}
-namePath = '.\\Data\\name.txt'
+namePath = './Data/name.txt'
 name = {}
-teaRoomStatePath = '.\\Data\\teaRoomState.txt'
+teaRoomStatePath = './Data/teaRoomState.txt'
 teaRoomState = {}
-teaRoomAutoStatePath = '.\\Data\\teaRoomAutoState.txt'
+teaRoomAutoStatePath = './Data/teaRoomAutoState.txt'
 teaRoomAutoState = {}
 lastSender = {}
 lianCount = {}
 msgCount = {}
-countLimitPath = ".\\Data\\countLimit.txt"
+countLimitPath = "./Data/countLimit.txt"
 countLimit = {}
-bannedWordsPath = ".\\Data\\bannedWords.txt"
+bannedWordsPath = "./Data/bannedWords.txt"
 bannedWords = {}
-bannedWordsMuteStatePath = ".\\Data\\bannedWordsMuteState.txt"
+bannedWordsMuteStatePath = "./Data/bannedWordsMuteState.txt"
 bannedWordsMuteState = {}
-bannedWordsMuteTimePath = ".\\Data\\bannedWordsMuteTime.txt"
+bannedWordsMuteTimePath = "./Data/bannedWordsMuteTime.txt"
 bannedWordsMuteTime = {}
-passOnAMsgStatePath = ".\\Data\\passOnAMsgState.txt"
+passOnAMsgStatePath = "./Data/passOnAMsgState.txt"
 passOnAMsgState = {}
-refusePassOnAMsgStatePath = ".\\Data\\refusePassOnAMsgState.txt"
+refusePassOnAMsgStatePath = "./Data/refusePassOnAMsgState.txt"
 refusePassOnAMsgState = {}
-codeforcesNamePath = ".\\Data\\codeforcesName.txt"
+codeforcesNamePath = "./Data/codeforcesName.txt"
 codeforcesName = {}
-contestInformListPath = ".\\Data\\contestInformList.txt"
+contestInformListPath = "./Data/contestInformList.txt"
 contestInformList = {}
 groupMoveStone = {}
 personalMoveStone = {}
 groupFightTheLandlord = {}
-groupKickBotNumberPath = ".\\Data\\groupKickBotNumber.txt"
+groupKickBotNumberPath = "./Data/groupKickBotNumber.txt"
 groupKickBotNumber = {}
 lastRecallMsg = {}
 
@@ -278,32 +279,7 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     if getName(info.autoFriendNumber) == "无名氏":
         setName(info, info.autoName)
     # changeLastSendGroup(info.autoFriendNumber, info.autoGroupNumber)
-    temp = time.time()
-    addMsgCount(info.autoGroupNumber, info.autoFriendNumber, temp)
-    global lianCount
-    if lastSender.get(info.autoGroupNumber, 0) == info.autoFriendNumber:
-        lianCount[info.autoFriendNumber] = lianCount.get(info.autoFriendNumber, 0) + 1
-    else:
-        lianCount[info.autoFriendNumber] = 0
-        lastSender[info.autoGroupNumber] = info.autoFriendNumber
-
-    signNum = 0
-    for c in info.autoPlain:
-        if c == "\n":
-            signNum += 1
-    for i in range(0, int(signNum/3)):
-        addMsgCount(info.autoGroupNumber, info.autoFriendNumber, temp)
-    if getMsgCount(info.autoGroupNumber, info.autoFriendNumber) > getCountLimit(info.autoGroupNumber) or\
-            lianCount.get(info.autoFriendNumber, 0) > getCountLimit(info.autoGroupNumber):
-        info.autoBot.mute(info.autoGroupNumber, info.autoFriendNumber, 600)
-        addMsgCount(info.autoGroupNumber, info.autoFriendNumber, 0)
-        output(info, "请不要刷屏", True)
-        lianCount[info.autoFriendNumber] = 0
-    t1 = threading.Thread(target=runningMoveStoneGame, args=(info,))
-    t2 = threading.Thread(target=runningFightTheLandlordGame, args=(info,))
     t3 = threading.Thread(target=messageMatchReply, args=(info,))
-    t1.start()
-    t2.start()
     t3.start()
     # runningMoveStoneGame(info)
     # runningFightTheLandlordGame(info)
@@ -386,6 +362,29 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 
 def someTest(info):
     pass
+
+
+def flushScreenCheck(info):
+    temp = time.time()
+    addMsgCount(info.autoGroupNumber, info.autoFriendNumber, temp)
+    global lianCount
+    if lastSender.get(info.autoGroupNumber, 0) == info.autoFriendNumber:
+        lianCount[info.autoFriendNumber] = lianCount.get(info.autoFriendNumber, 0) + 1
+    else:
+        lianCount[info.autoFriendNumber] = 0
+        lastSender[info.autoGroupNumber] = info.autoFriendNumber
+    signNum = 0
+    for c in info.autoPlain:
+        if c == "\n":
+            signNum += 1
+    for i in range(0, int(signNum/3)):
+        addMsgCount(info.autoGroupNumber, info.autoFriendNumber, temp)
+    if getMsgCount(info.autoGroupNumber, info.autoFriendNumber) > getCountLimit(info.autoGroupNumber) or\
+            lianCount.get(info.autoFriendNumber, 0) > getCountLimit(info.autoGroupNumber):
+        info.autoBot.mute(info.autoGroupNumber, info.autoFriendNumber, 600)
+        addMsgCount(info.autoGroupNumber, info.autoFriendNumber, 0)
+        output(info, "请不要刷屏", True)
+        lianCount[info.autoFriendNumber] = 0
 
 
 def clearKickBotNumber():
@@ -539,10 +538,10 @@ def getMsgCount(groupNumber, number):
     return len(msgCount[str(groupNumber)][str(number)])
 
 
-def messageMatchReply(info):
-    t1 = threading.Thread(target=runningMoveStoneGameBotModel, args=(info,))
-    t1.start()
-    # runningMoveStoneGameBotModel(info)
+def servicesForCustomers(info):
+    if info.autoPlain == "便民工具":
+        showServiceForCustomers(info)
+        return
     if re.match("开启cf比赛提醒", info.autoPlain):
         output(info, "好的")
         changeContestInfoStatue(info.autoFriendNumber, True)
@@ -563,6 +562,12 @@ def messageMatchReply(info):
         output(info, "正在查询中...请耐心等待...")
         getCodeforcesUserInfo(info)
         return
+
+
+def passOnMsgSystem(info):
+    if info.autoPlain == "传话系统":
+        showPassOnAMsgSystem(info)
+        return
     if re.match("拒绝被传话", info.autoPlain):
         output(info, "好的")
         setRefusePassOnAMsgState(info.autoFriendNumber, True)
@@ -571,88 +576,43 @@ def messageMatchReply(info):
         output(info, "好的")
         setRefusePassOnAMsgState(info.autoFriendNumber, False)
         return
-    if re.match("违禁词列表", info.autoPlain):
-        showBannedWordsList(info)
-        return
-    if info.autoPlain == "开启便捷茶馆":
-        output(info, "好的", True)
-        setTeaRoomAutoState(info.autoFriendNumber, True)
-        return
-    if info.autoPlain == "关闭便捷茶馆":
-        output(info, "好的", True)
-        setTeaRoomAutoState(info.autoFriendNumber, False)
-        return
-    if re.match("添加管理员", info.autoNoSpaceMsg) is not None and len(info.autoAtQQ) > 0:
-        if info.autoFriendNumber != owner:
-            output(info,  "你不是墨晓晓！", True)
-        else:
-            output(info,  "好的", True)
-            for qq in info.autoAtQQ:
-                addAdministrator(qq)
-        return
-    if re.match("删除管理员", info.autoNoSpaceMsg) is not None and len(info.autoAtQQ) > 0:
-        if info.autoFriendNumber != owner:
-            output(info, "你不是墨晓晓！", True)
-        else:
-            output(info, "好的", True)
-            for qq in info.autoAtQQ:
-                deleteAdministrator(qq)
-        return
-    if re.match("设置昵称 .*", info.autoPlain) is not None:
-        if len(info.autoArguments[1]) <= 20:
-            output(info, "好的", True)
-            setName(info, info.autoArguments[1])
-        else:
-            output(info, "不行，你昵称太长了", True)
-        return
-    if re.match("茶馆 .*", info.autoPlain) is not None:
-        updateTime()
-        if getTeaState(info.autoFriendNumber):
-            if not info.isFriend:
-                output(info, f"[online:{getTeaRoomPeopleNumber()}]好嘞，小的这就帮您转达", True)
-            Str = ""
-            for i in info.autoArguments[1:]:
-                Str += i
-                Str += ' '
-            if info.autoImage is not None:
-                Str += f"[mirai:image:{info.autoImage.image_id}]"
-            sentTeaRoomMessage(info, Str)
-        else:
-            output(info, "您这不还没进茶馆嘛...", True)
-        return
-    if re.match("反馈 .*", info.autoPlain) is not None:
-        Str = ""
-        for i in info.autoArguments[1:]:
-            Str += i
-            Str += ' '
-        output(info, "您的反馈已发送到开发组，感谢您的宝贵建议", True)
-        sentFeedBackMessage(info, f"收到一条反馈信息:\n{Str}")
-        return
-    if info.autoPlain == "茶馆在线列表":
-        output(info, queryTeaRoomOnlineList())
-        return
-    if info.autoPlain == "菜单":
-        showMenu(info)
-        return
-    if info.autoPlain == "进入茶馆":
-        if getTeaState(info.autoFriendNumber):
-            output(info, "客官您已经在茶馆里了", True)
-        else:
-            output(info, "好的", True)
-            setTeaRoomState(info.autoFriendNumber, True)
-            output(info, f"当前在线人数:{getTeaRoomPeopleNumber()}")
-        return
-    if info.autoPlain == "离开茶馆":
-        if getTeaState(info.autoFriendNumber):
-            output(info, "好的", True)
-            setTeaRoomState(info.autoFriendNumber, False)
-        else:
-            output(info, "客官您本就不在茶馆之中", True)
+    if info.isFriend:
+        if re.match("开始传话 [0-9]+", info.autoPlain):
+            if getRefusePassOnAMsgState(info.autoArguments[1]):
+                output(info, "对方拒绝被传话")
+                return
+            output(info, "好的")
+            setPassOnAMsgNumber(info.autoFriendNumber, info.autoArguments[1])
+            return
+        if re.match("结束传话", info.autoPlain):
+            output(info, "好的")
+            setPassOnAMsgNumber(info.autoFriendNumber, 0)
+            return
+        if queryPassOnAMsgNumber(info.autoFriendNumber) != 0:
+            if getRefusePassOnAMsgState(queryPassOnAMsgNumber(info.autoFriendNumber)):
+                output(info, "对方拒绝被传话")
+                setPassOnAMsgNumber(info.autoFriendNumber, 0)
+                return
+            if sentMsgToSomeOne(info, getPassOnAMsgNumber(info.autoFriendNumber), info.autoFullMsg):
+                output(info, "传话成功")
+            else:
+                output(info, "我已经尽力了...但还是没能联系上对方...")
+            return
+
+
+def groupRegulateSystem(info):
+    if not info.isFriend:
+        t4 = threading.Thread(target=flushScreenCheck, args=(info,))
+        t4.start()
+    if info.autoPlain == "群管系统":
+        showGroupRegulateSystem(info)
         return
     if not info.isFriend:
         haveAdm = (info.autoBot.is_owner(info.autoFriendNumber, info.autoGroupNumber) or
                    info.autoBot.is_administrator(info.autoFriendNumber, info.autoGroupNumber))
-
+        if re.match("违禁词列表", info.autoPlain):
+            showBannedWordsList(info)
+            return
         if re.match("添加违禁词 .*", info.autoPlain) and (isAdmin(info.autoFriendNumber) or haveAdm):
             output(info, "好的")
             addBannedWords(info.autoGroupNumber, info.autoArguments[1:])
@@ -744,32 +704,94 @@ def messageMatchReply(info):
         output(info, "好啦好啦，发给你就是了...")
         output(info, lastRecallMsg.get(f'{str(info.autoFriendNumber)}', ""), personal=True)
         return
+
+
+def personalInformationSystem(info):
     if info.autoPlain == "个人信息":
         queryPersonalInformation(info)
         return
     if info.autoPlain == "设置昵称":
         showSetPersonalNick(info)
         return
-    if info.autoPlain == "茶馆系统":
-        showTeaRoomSystem(info)
+    if re.match("设置昵称 .*", info.autoPlain) is not None:
+        if len(info.autoArguments[1]) <= 20:
+            output(info, "好的", True)
+            setName(info, info.autoArguments[1])
+        else:
+            output(info, "不行，你的昵称太长了", True)
         return
-    if info.autoPlain == "群管系统":
-        showGroupRegulateSystem(info)
-        return
+    
+
+def feedBackSystem(info):
     if info.autoPlain == "反馈系统":
         showFeedBackSystem(info)
         return
-    if info.autoPlain == "传话系统":
-        showPassOnAMsg(info)
+    if re.match("反馈 .*", info.autoPlain) is not None:
+        Str = ""
+        for i in info.autoArguments[1:]:
+            Str += i
+            Str += ' '
+        output(info, "您的反馈已发送到开发组，感谢您的宝贵建议", True)
+        sentFeedBackMessage(info, f"收到一条反馈信息:\n{Str}")
         return
-    if info.autoPlain == "便民工具":
-        showServiceForCustomers(info)
+
+
+def teaRoomSystem(info):
+    if info.autoPlain == "茶馆系统":
+        showTeaRoomSystem(info)
         return
+    if info.autoPlain == "开启便捷茶馆":
+        output(info, "好的", True)
+        setTeaRoomAutoState(info.autoFriendNumber, True)
+        return
+    if info.autoPlain == "关闭便捷茶馆":
+        output(info, "好的", True)
+        setTeaRoomAutoState(info.autoFriendNumber, False)
+        return
+    if re.match("茶馆 .*", info.autoPlain) is not None:
+        updateTime()
+        if getTeaState(info.autoFriendNumber):
+            if not info.isFriend:
+                output(info, f"[online:{getTeaRoomPeopleNumber()}]好嘞，小的这就帮您转达", True)
+            Str = ""
+            for i in info.autoArguments[1:]:
+                Str += i
+                Str += ' '
+            if info.autoImage is not None:
+                Str += f"[mirai:image:{info.autoImage.image_id}]"
+            sentTeaRoomMessage(info, Str)
+        else:
+            output(info, "您这不还没进茶馆嘛...", True)
+        return
+    if info.autoPlain == "茶馆在线列表":
+        output(info, queryTeaRoomOnlineList())
+        return
+    if info.autoPlain == "进入茶馆":
+        if getTeaState(info.autoFriendNumber):
+            output(info, "客官您已经在茶馆里了", True)
+        else:
+            output(info, "好的", True)
+            setTeaRoomState(info.autoFriendNumber, True)
+            output(info, f"当前在线人数:{getTeaRoomPeopleNumber()}")
+        return
+    if info.autoPlain == "离开茶馆":
+        if getTeaState(info.autoFriendNumber):
+            output(info, "好的", True)
+            setTeaRoomState(info.autoFriendNumber, False)
+        else:
+            output(info, "客官您本就不在茶馆之中", True)
+        return
+    if info.isFriend:
+        if getTeaRoomAutoState(info.autoFriendNumber):
+            updateTime()
+            if getTeaState(info.autoFriendNumber):
+                sentTeaRoomMessage(info, getFullMsgInfo(info.autoMsgJson))
+            return
+    
+
+def gameSystem(info):
     if info.autoPlain == "娱乐系统":
         showGameList(info)
-        return
-    if info.autoPlain == "积分排行":
-        showScoreRank(info)
         return
     if info.autoPlain == "挪石头":
         showMoveStoneGame(info)
@@ -777,63 +799,81 @@ def messageMatchReply(info):
     if info.autoPlain == "斗地主":
         showFightLandlordGame(info)
         return
+    #   诺石头
+    if not info.isFriend:
+        t1 = threading.Thread(target=runningMoveStoneGame, args=(info,))
+        t1.start()
+        #   斗地主
+        t2 = threading.Thread(target=runningFightTheLandlordGame, args=(info,))
+        t2.start()
+
+
+def scoreRankSystem(info):
+    if info.autoPlain == "积分排行":
+        showScoreRank(info)
+        return
     if info.autoPlain == "积分负排行":
         output(info, getScoreRankGreater())
         return
     if info.autoPlain == "积分正排行":
         output(info, getScoreRankLower())
         return
-    if info.isFriend:
-        if re.match("开始传话 [0-9]+", info.autoPlain):
-            if getRefusePassOnAMsgState(info.autoArguments[1]):
-                output(info, "对方拒绝被传话")
-                return
-            output(info, "好的")
-            setPassOnAMsgNumber(info.autoFriendNumber, info.autoArguments[1])
-            return
-        if re.match("结束传话", info.autoPlain):
-            output(info, "好的")
-            setPassOnAMsgNumber(info.autoFriendNumber, 0)
-            return
-        if queryPassOnAMsgNumber(info.autoFriendNumber) != 0:
-            if getRefusePassOnAMsgState(queryPassOnAMsgNumber(info.autoFriendNumber)):
-                output(info, "对方拒绝被传话")
-                setPassOnAMsgNumber(info.autoFriendNumber, 0)
-                return
-            if sentMsgToSomeOne(info, getPassOnAMsgNumber(info.autoFriendNumber), info.autoFullMsg):
-                output(info, "传话成功")
-            else:
-                output(info, "我已经尽力了...但还是没能联系上对方...")
-            return
-        if getTeaRoomAutoState(info.autoFriendNumber):
-            updateTime()
-            if getTeaState(info.autoFriendNumber):
-                sentTeaRoomMessage(info, getFullMsgInfo(info.autoMsgJson))
-            return
-    if checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg) and not info.isFriend:
-        output(info, "检测到违禁词")
-        lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
-        info.autoBot.recall(info.autoMsgId)
-        if getBannedWordsMuteState(info.autoGroupNumber):
-            info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
+
+
+def messageMatchReply(info):
+    #   个人信息系统
+    t1 = threading.Thread(target=personalInformationSystem, args=(info,))
+    t1.start()
+    #   积分排行系统
+    t2 = threading.Thread(target=scoreRankSystem, args=(info,))
+    t2.start()
+    #   反馈系统
+    t3 = threading.Thread(target=feedBackSystem, args=(info,))
+    t3.start()
+    #   便民系统
+    t4 = threading.Thread(target=servicesForCustomers, args=(info,))
+    t4.start()
+    #   茶馆系统
+    t5 = threading.Thread(target=teaRoomSystem, args=(info,))
+    t5.start()
+    #   娱乐系统
+    t6 = threading.Thread(target=gameSystem, args=(info,))
+    t6.start()
+    #   群管系统
+    t7 = threading.Thread(target=groupRegulateSystem, args=(info,))
+    t7.start()
+    #   传话系统
+    t8 = threading.Thread(target=passOnMsgSystem, args=(info,))
+    t8.start()
+    if re.match("添加管理员", info.autoNoSpaceMsg) is not None and len(info.autoAtQQ) > 0:
+        if info.autoFriendNumber != owner:
+            output(info,  "你不是墨晓晓！", True)
+        else:
+            output(info,  "好的", True)
+            for qq in info.autoAtQQ:
+                addAdministrator(qq)
+        return
+    if re.match("删除管理员", info.autoNoSpaceMsg) is not None and len(info.autoAtQQ) > 0:
+        if info.autoFriendNumber != owner:
+            output(info, "你不是墨晓晓！", True)
+        else:
+            output(info, "好的", True)
+            for qq in info.autoAtQQ:
+                deleteAdministrator(qq)
+        return
+    if info.autoPlain == "菜单":
+        showMenu(info)
+        return
+    
 
 def runCheckExistBannedWords(info):
-    if checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg):
+    if not info.isFriend and checkExistBannedWords(info.autoGroupNumber, info.autoNoSpaceMsg):
         output(info, "检测到违禁词")
         lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
         info.autoBot.recall(info.autoMsgId)
         if getBannedWordsMuteState(info.autoGroupNumber):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
         return
-    # if info.autoImage is not None:
-    #     temp = info.autoImage.to_json().get('url', '')
-    #     Str = ImageToText.getTextFromImage(temp)
-    #     if checkExistBannedWords(info.autoGroupNumber, Str):
-    #         output(info, "检测到违禁词")
-    #         lastRecallMsg[str(info.autoFriendNumber)] = info.autoFullMsg
-    #         info.autoBot.recall(info.autoMsgId)
-    #         if getBannedWordsMuteState(info.autoGroupNumber):
-    #             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
 
 
 def showBannedWordsList(info):
@@ -926,9 +966,6 @@ def showMoveStoneGame(info):
 [挪石头对局信息]\n\
 [挪石头投降](主动投降也许可以少扣点积分)\n\
 [挪石头掀桌]((玩家长时间未操作，任意群成员可掀桌))\n\
-[开始人机挪石头](单人游戏,可私聊操作)\n\
-[人机挪石头对局信息]\n\
-[人机挪石头投降]\n\
 示例:[A 5 7]\n\
 解释:从A堆挪走5个石头，从B堆挪走5*7=35个石头"
     output(info, Str)
@@ -1106,7 +1143,7 @@ def sentTeaRoomMessage(info, Str):
                     break
 
 
-def showPassOnAMsg(info):
+def showPassOnAMsgSystem(info):
     Str = f"\
 【该功能只能在私聊页面下触发】如果你有什么想对某人说的，但是又不想直接跟对方说，或者是还没添加对方为好友，则可以通过机器人来试试传话哦~\n\
 前提是你得提供对方的QQ号，机器人会竭尽全力帮你传话的。\n\
@@ -1351,27 +1388,27 @@ def runningMoveStoneGame(info: _Info):
         groupMoveStone[info.autoGroupNumber].reset()
 
 
-#   挪石头人机模式
-def runningMoveStoneGameBotModel(info: _Info):
-    # if re.match(info.autoPlain, "")
-    if personalMoveStone.get(info.autoFriendNumber, None) is None:
-        personalMoveStone[info.autoFriendNumber] = MoveStoneGameBotModel.MoveStoneBotModel()
-    Dict = personalMoveStone[info.autoFriendNumber].running(info.autoFriendNumber, info.autoPlain)
-    # print(Dict)
-    if Dict.get("active", False) is False:
-        return
-    if Dict.get("legal", False) is False:
-        output(info, Dict.get("errorBack", ""), not info.isFriend)
-        return
-    output(info, Dict.get("normalBack", ""), not info.isFriend)
-    if Dict.get("state", "waiting") == "running" and not Dict.get("finish", False):
-        output(info, f"{Dict.get('gameInfo', '')}")
-        output(info, f"接下来轮到玩家【{getName(Dict.get('nowOperator', 0))}】({Dict.get('nowOperator', 0)})执行操作")
-    if Dict.get("finish", False):
-        output(info, f"恭喜玩家【{getName(Dict.get('winner', 0))}】获得胜利！\n")
-        changeScore(Dict.get("scoreChangeList", {}))
-        output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
-        personalMoveStone[info.autoFriendNumber].reset()
+# #   挪石头人机模式
+# def runningMoveStoneGameBotModel(info: _Info):
+#     # if re.match(info.autoPlain, "")
+#     if personalMoveStone.get(info.autoFriendNumber, None) is None:
+#         personalMoveStone[info.autoFriendNumber] = MoveStoneGameBotModel.MoveStoneBotModel()
+#     Dict = personalMoveStone[info.autoFriendNumber].running(info.autoFriendNumber, info.autoPlain)
+#     # print(Dict)
+#     if Dict.get("active", False) is False:
+#         return
+#     if Dict.get("legal", False) is False:
+#         output(info, Dict.get("errorBack", ""), not info.isFriend)
+#         return
+#     output(info, Dict.get("normalBack", ""), not info.isFriend)
+#     if Dict.get("state", "waiting") == "running" and not Dict.get("finish", False):
+#         output(info, f"{Dict.get('gameInfo', '')}")
+#         output(info, f"接下来轮到玩家【{getName(Dict.get('nowOperator', 0))}】({Dict.get('nowOperator', 0)})执行操作")
+#     if Dict.get("finish", False):
+#         output(info, f"恭喜玩家【{getName(Dict.get('winner', 0))}】获得胜利！\n")
+#         changeScore(Dict.get("scoreChangeList", {}))
+#         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+#         personalMoveStone[info.autoFriendNumber].reset()
 
 
 #   斗地主

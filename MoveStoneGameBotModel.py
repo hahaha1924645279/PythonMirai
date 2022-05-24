@@ -1,36 +1,14 @@
 import random
 import re
 import time
+import json
  
 """""
 返回的Json应当包含元素：{"state" : "running/waiting", "nowOperator": playerID , "active":True/False, "legal":True/False,
             "errorBack":"Str", "finish":True/False, "winner":playerID, "gameInfo":"Str", "lastOperationTime": int
             "normalBack":"Str"}
 """""
-"""""
-for (int i = 0; i <= 1000; i++) {
-        for (int j = 0; j <= 1000; j++) {
-            if (ans[i][j] == false) {
-                for (int k = 1; k + i <= 1000; k++) {
-                    for (int s = 0; k * s + j <= 1000; s++) {
-						if(!ans[i + k][j + s * k]){	
-							ans[i + k][j + s * k] = true;
-							from[i + k][j + s * k] = {'A', k, s};
-						}
-					}
-                }
-                for (int k = 1; k + j <= 1000; k++) {
-                    for (int s = 0; s * k + i <= 1000; s++) {
-						if(!ans[i + s * k][j + k]){
-							ans[i + s * k][j + k] = true;
-							from[i + s * k][j + k] = {'B', k, s};
-						}
-					}
-                }
-            }
-        }
-    }
-"""""
+
 Answer = {}
 Sign = {}
 for i in range(0, 1000):
@@ -46,6 +24,12 @@ for i in range(0, 1000):
                     if not Sign.get((i + s*k, j + k)):
                         Sign[(i + s*k, j + k)] = True
                         Answer[(i + s*k, j + k)] = ('B', k, s)
+
+# moveStoneGameAnsPath = "./Data/moveStoneGameAns.txt"
+# with open(moveStoneGameAnsPath, 'w') as f:
+#     f.write(json.dumps(Answer))
+# with open(moveStoneGameAnsPath, 'r') as f:
+#     Answer = json.load(f)
 
 
 class MoveStoneBotModel:
