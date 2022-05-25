@@ -1,4 +1,3 @@
-from glob import glob
 from PIL import Image, ImageFont, ImageDraw
 import os
 stk = 0 
