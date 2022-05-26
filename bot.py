@@ -56,6 +56,12 @@ groupFightTheLandlord = {}
 groupKickBotNumberPath = "./Data/groupKickBotNumber.txt"
 groupKickBotNumber = {}
 lastRecallMsg = {}
+allowSpecialConcernPath = "./Data/allowSpecialConcern.txt"
+allowSpecialConcern = {}
+specialConcernPath = "./Data/specialConcern.txt"
+specialConcern = {}
+beSpecialConcernPath = "./Data/beSpecialConcern.txt"
+beSpecialConcern = {}
 
 
 with open(userScorePath, 'r') as f:
@@ -88,6 +94,12 @@ with open(refusePassOnAMsgStatePath, 'r') as f:
     refusePassOnAMsgState = json.load(f)
 with open(groupKickBotNumberPath, 'r') as f:
     groupKickBotNumber = json.load(f)
+with open(allowSpecialConcernPath, 'r') as f:
+    allowSpecialConcern = json.load(f)
+with open(specialConcernPath, 'r') as f:
+    specialConcern = json.load(f)
+with open(beSpecialConcernPath, 'r') as f:
+    beSpecialConcern = json.load(f)
 
 
 def getCodeForcesContestInfo():
@@ -126,6 +138,7 @@ def getCodeForcesContestInfo():
 class _Info:
     autoBot = None
     autoGroupNumber = None
+    autoGroupName = None
     autoFriendNumber = None
     autoPlain = None
     autoMsgJson = None
@@ -172,6 +185,12 @@ def update(bot):
         f.write(json.dumps(refusePassOnAMsgState))
     with open(groupKickBotNumberPath, 'w') as f:
         f.write(json.dumps(groupKickBotNumber))
+    with open(allowSpecialConcernPath, 'w') as f:
+        f.write(json.dumps(allowSpecialConcern))
+    with open(beSpecialConcernPath, 'w') as f:
+        f.write(json.dumps(beSpecialConcern))
+    with open(specialConcernPath, 'w') as f:
+        f.write(json.dumps(specialConcern))
 
 
 @miraicle.scheduled_job(miraicle.Scheduler.every().day.at('12:00:00'))
@@ -267,6 +286,7 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     info.isFriend = False
     info.autoBot = bot
     info.autoGroupNumber = msg.group
+    info.autoGroupName = msg.group_name
     info.autoPlain = msg.plain
     info.autoMsgJson = msg.json
     info.autoImage = msg.first_image
@@ -822,6 +842,86 @@ def scoreRankSystem(info):
         return
 
 
+def specialConcernSystem(info: _Info):
+    global specialConcern
+    global beSpecialConcern
+    global allowSpecialConcern
+    if info.autoPlain == "特别关心":
+        Str = "【特别关心】该功能可以帮助你看到你所关注之人在群里(无论哪个群)所发的信息\n\
+比如说你关注了A，A在某个群发了一条信息，只要机器人也在这个群并成功接收到了这条信息，那么它会把该\
+信息以及群号转发给你，让你得知。当然了，每个人都可以通过设置来避免别人对自己的监听。\n\
+指令列表如下(私发机器人就可以触发了)：\n\
+[特别关心 qq 备注名]\n\
+指令解释: qq 就是对方QQ， 备注名 则是用来帮助你辨识对方的\n\
+[取消关心 qq]\n\
+指令解释: 没啥好解释的，上一条指令懂了自然懂，若上一条不懂，建议先去理解上一条\n\
+[特别关心列表]\n\
+指令解释: 看看你关注哪些人了\n\
+[拒绝被特别关心]\n\
+指令解释: 避免他人特关你\n\
+[允许被特别关心]\n\
+指令解释: 给别人一个关注你的鸡喙"
+        output(info, Str)
+        return
+    if re.match("特别关心 [0-9]+ .*", info.autoPlain):
+        aimQQ = info.autoArguments[1]
+        if not allowSpecialConcern.get(str(aimQQ), True):
+            output(info, "对方不允许被关注呢...")
+            return
+        output(info, "好的")
+        specialConcern[str(info.autoFriendNumber)] = specialConcern.get(str(info.autoFriendNumber), {})
+        specialConcern[str(info.autoFriendNumber)][str(aimQQ)] = specialConcern[str(info.autoFriendNumber)].get(str(aimQQ), {"state":False, "note":"NULL"})
+        specialConcern[str(info.autoFriendNumber)][str(aimQQ)] = {'state':True, 'note':info.autoArguments[2]}
+
+        beSpecialConcern[str(aimQQ)] = beSpecialConcern.get(str(aimQQ), {})
+        beSpecialConcern[str(aimQQ)][str(info.autoFriendNumber)] = True
+        return
+    if re.match("取消关心 [0-9]+", info.autoPlain):
+        aimQQ = info.autoArguments[1]
+        output(info,"好的")
+        specialConcern[str(info.autoFriendNumber)] = specialConcern.get(str(info.autoFriendNumber), {})
+        specialConcern[str(info.autoFriendNumber)][str(aimQQ)] = specialConcern[str(info.autoFriendNumber)].get(str(aimQQ), {"state":False, "note":"NULL"})
+        specialConcern[str(info.autoFriendNumber)][str(aimQQ)] = {"state":False, "note": "NULL"}
+
+        
+        beSpecialConcern[str(aimQQ)] = beSpecialConcern.get(str(aimQQ), {})
+        beSpecialConcern[str(aimQQ)][str(info.autoFriendNumber)] = False
+        return
+    if info.autoPlain == "拒绝被特别关心":
+        allowSpecialConcern[str(info.autoFriendNumber)] = False
+        output(info, "好的")
+        for qq in beSpecialConcern.get(str(info.autoFriendNumber), {}):
+            if beSpecialConcern[str(info.autoFriendNumber)][qq]:
+                note = specialConcern[str(qq)][str(info.autoFriendNumber)]["note"]
+                output(info,f"你所特别关心的【{note}({info.autoFriendNumber})】拒绝被别人关心了，因此已从你的特关列表中移除", newQQ=qq,personal=True)
+                beSpecialConcern[str(info.autoFriendNumber)][qq] = False
+                specialConcern[str(qq)][str(info.autoFriendNumber)] = {"state":False, "note":"NULL"}
+        return
+    if info.autoPlain == "允许被特别关心":
+        allowSpecialConcern[str(info.autoFriendNumber)] = True
+        output(info, "好的")
+        return
+
+    if info.autoPlain == "特别关心列表":
+        Str = "特别关心列表:\n"
+        for qq in specialConcern.get(str(info.autoFriendNumber), {}):
+            if specialConcern[str(info.autoFriendNumber)][qq]["state"]:
+                Str += f'【{specialConcern[str(info.autoFriendNumber)][qq]["note"]}({qq})】\n'
+        if Str == "特别关心列表:\n":
+            Str += "[空]"
+        output(info, Str,needAt=True)
+        return
+
+    if not info.isFriend and allowSpecialConcern.get(str(info.autoFriendNumber)):
+        for qq in beSpecialConcern.get(str(info.autoFriendNumber), {}):
+            if beSpecialConcern[str(info.autoFriendNumber)][qq]:
+                note = specialConcern[str(qq)][str(info.autoFriendNumber)]["note"]
+                Str = f"[{st}]你所特别关心的【{note}({info.autoFriendNumber})】在群【{info.autoGroupName}({info.autoGroupNumber})】发送了一条信息，内容如下:\n"
+                Str += info.autoFullMsg
+                output(info,Str, newQQ=qq,personal=True)
+        return
+
+
 def messageMatchReply(info):
     #   群管系统
     t7 = threading.Thread(target=groupRegulateSystem, args=(info,))
@@ -847,6 +947,9 @@ def messageMatchReply(info):
     #   传话系统
     t8 = threading.Thread(target=passOnMsgSystem, args=(info,))
     t8.start()
+    #   特别关心
+    t9 = threading.Thread(target=specialConcernSystem, args=(info,))
+    t9.start()
     if re.match("添加管理员", info.autoNoSpaceMsg) is not None and len(info.autoAtQQ) > 0:
         if info.autoFriendNumber != owner:
             output(info,  "你不是墨晓晓！", True)
@@ -1083,6 +1186,7 @@ QQ:{info.autoFriendNumber}\n\
 拒绝别人传话:{getRefusePassOnAMsgState(info.autoFriendNumber)}\n\
 茶馆状态:{getTeaState(info.autoFriendNumber)}\n\
 茶馆便捷状态:{getTeaRoomAutoState(info.autoFriendNumber)}\n\
+允许被特别关心:{allowSpecialConcern.get(str(info.autoFriendNumber),False)}\n\
 个人积分:{getPersonalScore(info.autoFriendNumber)}"
     output(info,  Str, True)
 
@@ -1102,7 +1206,7 @@ def showMenu(info):
 Ο个人信息Ο便民工具Ο\n\
 Ο茶馆系统Ο娱乐系统Ο\n\
 Ο群管系统Ο积分排行Ο\n\
-Ο传话系统Ο等待开发Ο"
+Ο传话系统Ο特别关心Ο"
     output(info,  menu)
 
 
