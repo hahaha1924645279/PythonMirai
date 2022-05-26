@@ -842,10 +842,27 @@ def scoreRankSystem(info):
         return
 
 
+def sentSpecialConcern(info: _Info):
+    global specialConcern
+    global beSpecialConcern
+    global allowSpecialConcern
+    
+    if not info.isFriend and allowSpecialConcern.get(str(info.autoFriendNumber), False):
+        dic = beSpecialConcern.get(str(info.autoFriendNumber), {})
+        for qq in dic:
+            if beSpecialConcern[str(info.autoFriendNumber)][qq]:
+                note = specialConcern[str(qq)][str(info.autoFriendNumber)]["note"]
+                Str = f"[{st}]你所特别关心的【{note}({info.autoFriendNumber})】在群【{info.autoGroupName}({info.autoGroupNumber})】发送了一条信息，内容如下:\n"
+                Str += info.autoFullMsg
+                output(info,Str, newQQ=qq,personal=True)
+        return
+
 def specialConcernSystem(info: _Info):
     global specialConcern
     global beSpecialConcern
     global allowSpecialConcern
+    t1 = threading.Thread(target=sentSpecialConcern, args=(info,))
+    t1.start()
     if info.autoPlain == "特别关心":
         Str = "【特别关心】该功能可以帮助你看到你所关注之人在群里(无论哪个群)所发的信息\n\
 比如说你关注了A，A在某个群发了一条信息，只要机器人也在这个群并成功接收到了这条信息，那么它会把该\
@@ -865,7 +882,7 @@ def specialConcernSystem(info: _Info):
         return
     if re.match("特别关心 [0-9]+ .*", info.autoPlain):
         aimQQ = info.autoArguments[1]
-        if not allowSpecialConcern.get(str(aimQQ), True):
+        if not allowSpecialConcern.get(str(aimQQ), False):
             output(info, "对方不允许被关注呢...")
             return
         output(info, "好的")
@@ -890,7 +907,8 @@ def specialConcernSystem(info: _Info):
     if info.autoPlain == "拒绝被特别关心":
         allowSpecialConcern[str(info.autoFriendNumber)] = False
         output(info, "好的")
-        for qq in beSpecialConcern.get(str(info.autoFriendNumber), {}):
+        dic = beSpecialConcern.get(str(info.autoFriendNumber), {})
+        for qq in dic:
             if beSpecialConcern[str(info.autoFriendNumber)][qq]:
                 note = specialConcern[str(qq)][str(info.autoFriendNumber)]["note"]
                 output(info,f"你所特别关心的【{note}({info.autoFriendNumber})】拒绝被别人关心了，因此已从你的特关列表中移除", newQQ=qq,personal=True)
@@ -904,7 +922,8 @@ def specialConcernSystem(info: _Info):
 
     if info.autoPlain == "特别关心列表":
         Str = "特别关心列表:\n"
-        for qq in specialConcern.get(str(info.autoFriendNumber), {}):
+        dic = specialConcern.get(str(info.autoFriendNumber), {})
+        for qq in dic:
             if specialConcern[str(info.autoFriendNumber)][qq]["state"]:
                 Str += f'【{specialConcern[str(info.autoFriendNumber)][qq]["note"]}({qq})】\n'
         if Str == "特别关心列表:\n":
@@ -912,14 +931,6 @@ def specialConcernSystem(info: _Info):
         output(info, Str,needAt=True)
         return
 
-    if not info.isFriend and allowSpecialConcern.get(str(info.autoFriendNumber)):
-        for qq in beSpecialConcern.get(str(info.autoFriendNumber), {}):
-            if beSpecialConcern[str(info.autoFriendNumber)][qq]:
-                note = specialConcern[str(qq)][str(info.autoFriendNumber)]["note"]
-                Str = f"[{st}]你所特别关心的【{note}({info.autoFriendNumber})】在群【{info.autoGroupName}({info.autoGroupNumber})】发送了一条信息，内容如下:\n"
-                Str += info.autoFullMsg
-                output(info,Str, newQQ=qq,personal=True)
-        return
 
 
 def messageMatchReply(info):
@@ -1186,7 +1197,7 @@ QQ:{info.autoFriendNumber}\n\
 拒绝别人传话:{getRefusePassOnAMsgState(info.autoFriendNumber)}\n\
 茶馆状态:{getTeaState(info.autoFriendNumber)}\n\
 茶馆便捷状态:{getTeaRoomAutoState(info.autoFriendNumber)}\n\
-允许被特别关心:{allowSpecialConcern.get(str(info.autoFriendNumber),False)}\n\
+允许被特别关心:{allowSpecialConcern.get(str(info.autoFriendNumber), False)}\n\
 个人积分:{getPersonalScore(info.autoFriendNumber)}"
     output(info,  Str, True)
 
