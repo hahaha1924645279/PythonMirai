@@ -8,15 +8,15 @@ def CreateImg(text, fontSize=15):
     #画布颜色
     im = Image.new("RGB", (480, len(liens)*(fontSize+5)), (255, 255, 255))
     dr = ImageDraw.Draw(im)
-    fontPath = r"GB2312.ttf"
+    fontPath = r"./Data/Font/GB2312.ttf"
     font = ImageFont.truetype(fontPath, fontSize)
     #文字颜色
     dr.text((0, 0), text, font=font, fill="#000000")
     path = os.getcwd()
     stk += 1
-    im.save(f"{path}/{stk}.jpg")
+    im.save(f"{path}/Data/{stk}.jpg")
     stk -= 1
-    temp = f"file:///{path}/{stk+1}.jpg"
+    temp = f"file:///{path}/Data/{stk+1}.jpg"
     path = ""
     for i in temp:
         if i == '\\':

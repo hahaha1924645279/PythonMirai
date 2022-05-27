@@ -2,6 +2,8 @@
 from concurrent.futures import thread
 import random
 import threading
+
+from matplotlib.pyplot import get
 import miraicle
 import json
 import re
@@ -10,6 +12,7 @@ import requests
 import MoveStoneGame
 # import MoveStoneGameBotModel
 import FightTheLandlordGame
+import Gomoku
 import miraicle.createImg as createImg
 import ImageToText
 from requests.packages import urllib3
@@ -53,6 +56,7 @@ contestInformList = {}
 groupMoveStone = {}
 personalMoveStone = {}
 groupFightTheLandlord = {}
+groupGomoku = {}
 groupKickBotNumberPath = "./Data/groupKickBotNumber.txt"
 groupKickBotNumber = {}
 lastRecallMsg = {}
@@ -821,13 +825,19 @@ def gameSystem(info):
     if info.autoPlain == "斗地主":
         showFightLandlordGame(info)
         return
-    #   诺石头
+    if info.autoPlain == "五子棋":
+        showGomokuGame(info)
+        return
     if not info.isFriend:
+        #   挪石头
         t1 = threading.Thread(target=runningMoveStoneGame, args=(info,))
         t1.start()
         #   斗地主
         t2 = threading.Thread(target=runningFightTheLandlordGame, args=(info,))
         t2.start()
+        #   五子棋
+        t3 = threading.Thread(target=runningGomokuGame, args=(info,))
+        t3.start()
 
 
 def scoreRankSystem(info):
@@ -991,6 +1001,9 @@ def runCheckExistBannedWords(info):
             info.autoBot.mute(info.autoGroupNumber, int(info.autoFriendNumber), min(43200, int(getBannedWordsMuteTime(info.autoGroupNumber)) * 60))
         return
 
+def getImage(path):
+    return miraicle.Image(url=rf'path')
+
 
 def showBannedWordsList(info):
     output(info, "请稍等...")
@@ -1011,7 +1024,7 @@ def showBannedWordsList(info):
     imgPath = createImg.CreateImg(Str, fontSize=textSize)
     # output(info, f"当前路径为{imgPath}")
     # output(info, rf"{imgPath}")
-    img = miraicle.Image(url=rf'{imgPath}')
+    img = getImage(imgPath)
     output(info,"",topImg=img)
 
 
@@ -1048,6 +1061,19 @@ def showScoreRank(info):
 指令如下:\n\
 [积分正排行]\n\
 [积分负排行]"
+    output(info, Str)
+
+
+def showGomokuGame(info):
+    Str = "五子棋：\n两名玩家交替落子，一名执白棋，一名执黑棋，黑棋先手。\n\
+当一名玩家落子后，出现连续5子连成一线的情况，则该玩家胜出。\n\
+所谓连成一线，是指相同颜色的棋子在同一行或者同一列或者同一斜对角连续出现。\n\
+游戏涉及到的指令如下:\n\
+[加入五子棋]\n\
+[离开五子棋]\n\
+[落子 行 列]\n\
+[当前对局信息]\n\
+[五子棋掀桌]"
     output(info, Str)
 
 
@@ -1090,7 +1116,8 @@ def showMoveStoneGame(info):
 def showGameList(info):
     Str = "游戏列表:\n\
 挪石头\n\
-斗地主"
+斗地主\n\
+五子棋"
     output(info, Str)
 
 
@@ -1526,6 +1553,51 @@ def runningMoveStoneGame(info: _Info):
 #         changeScore(Dict.get("scoreChangeList", {}))
 #         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
 #         personalMoveStone[info.autoFriendNumber].reset()
+
+
+#   五子棋
+def runningGomokuGame(info: _Info):
+    if groupGomoku.get(info.autoGroupNumber, None) is None:
+        groupGomoku[info.autoGroupNumber] = Gomoku.Gomoku(info.autoGroupNumber)
+    Dict:dict = groupGomoku[info.autoGroupNumber].running(info.autoFriendNumber, info.autoPlain)
+    if not Dict.get("active", False):
+        return
+    if Dict.get("operationType", "NULL") == "不合法" or Dict.get("operationType", "NULL") == "加入对局" or Dict.get("operationType", "NULL") == "离开对局":
+        output(info, Dict.get("backMsg", "NULL"), needAt=True)
+        return
+    if Dict.get("operationType", "NULL") == "询问对局信息":
+        output(info, Dict.get("backMsg", "NULL"))
+        img = getImage(Dict.get("imagePath", "NULL"))
+        output(info, "", topImg=img)
+    if Dict.get("operationType", "NULL") == "对局开始":
+        output(info, Dict.get("backMsg", "NULL"))
+        nowOp = Dict.get("nowOperator", 0)
+        output(info, f"接下来轮到【{getName(nowOp)}】({nowOp})进行操作\n操作示例:[落子 5 A]")
+        return
+    if Dict.get("operationType", "NULL") == "落子":
+        output(info, "操作成功!正在更新对局信息...")
+        img = getImage(Dict.get("imagePath", "NULL"))
+        output(info, "", topImg=img)
+        nowOp = Dict.get("nowOperator", 0)
+        output(info, f"接下来轮到【{getName(nowOp)}】({nowOp})进行操作")
+        return
+    if Dict.get("operationType", "NULL") == "平局":
+        img = getImage(Dict.get("imagePath", "NULL"))
+        output(info, "", topImg=img)
+        output(info, "游戏以平局结束！二位可谓是棋逢对手，将遇良才，不妨再来一局，一决胜负")
+        Dict:dict = groupGomoku[info.autoGroupNumber].reset()
+        return
+    if Dict.get("operationType", "NULL") == "掀桌":
+        output(info, "有人掀桌！游戏状态已重置！")
+        output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        Dict:dict = groupGomoku[info.autoGroupNumber].reset()
+
+    if Dict.get("operationType", "NULL") == "对局结束":
+        img = getImage(Dict.get("imagePath", "NULL"))
+        output(info, "", topImg=img)
+        output(info, f"游戏结束！恭喜玩家【{getName(Dict.get('winner', 0))}({Dict.get('winner', 0)})】获得胜利！")
+        output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        Dict:dict = groupGomoku[info.autoGroupNumber].reset()
 
 
 #   斗地主
