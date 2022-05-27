@@ -1002,7 +1002,7 @@ def runCheckExistBannedWords(info):
         return
 
 def getImage(path):
-    return miraicle.Image(url=rf'path')
+    return miraicle.Image(url=rf'{path}')
 
 
 def showBannedWordsList(info):

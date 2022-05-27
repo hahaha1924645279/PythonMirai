@@ -28,5 +28,4 @@
 
 # ans.save("test.png")
 
-lis = [15,16,17,15]
-print(lis.count(15))
+print(rf"file:\\\o{1}/Data/{2+1}.jpg")

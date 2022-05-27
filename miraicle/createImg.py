@@ -16,7 +16,7 @@ def CreateImg(text, fontSize=15):
     stk += 1
     im.save(f"{path}/Data/{stk}.jpg")
     stk -= 1
-    temp = f"file:///{path}/Data/{stk+1}.jpg"
+    temp = rf"file:///{path}/Data/{stk+1}.jpg"
     path = ""
     for i in temp:
         if i == '\\':
