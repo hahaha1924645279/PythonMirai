@@ -1591,7 +1591,7 @@ def runningGomokuGame(info: _Info):
         output(info, "有人掀桌！游戏状态已重置！")
         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
         Dict:dict = groupGomoku[info.autoGroupNumber].reset()
-
+        return
     if Dict.get("operationType", "NULL") == "对局结束":
         img = getImage(Dict.get("imagePath", "NULL"))
         output(info, "", topImg=img)
