@@ -1571,6 +1571,8 @@ def runningGomokuGame(info: _Info):
         output(info, "", topImg=img)
     if Dict.get("operationType", "NULL") == "对局开始":
         output(info, Dict.get("backMsg", "NULL"))
+        img = getImage(Dict.get("imagePath", "NULL"))
+        output(info, "", topImg=img)
         nowOp = Dict.get("nowOperator", 0)
         output(info, f"接下来轮到【{getName(nowOp)}】({nowOp})进行操作\n操作示例:[落子 5 A]")
         return
