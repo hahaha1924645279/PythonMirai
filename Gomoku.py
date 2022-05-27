@@ -200,6 +200,16 @@ class Gomoku:
 
     def running(self, playerID, Str):
         self.updateArgument(Str)
+        if Str == "五子棋投降" and self.state == "running":
+            self.active = True
+            self.operationType = "玩家投降"
+            for qq in self.playerArr:
+                if qq == playerID:
+                    self.scoreChangeList[qq] = -self.winnerScore
+                else:
+                    self.scoreChangeList[qq] = self.winnerScore
+                    self.winner = qq
+            return self.makeDict()
         if Str == "五子棋掀桌" and self.state == "running":
             self.active = True
             if time.time() - self.lastOperationTime < 2 * 60:

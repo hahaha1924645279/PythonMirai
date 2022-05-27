@@ -1073,6 +1073,7 @@ def showGomokuGame(info):
 [离开五子棋]\n\
 [落子 行 列]\n\
 [五子棋对局信息]\n\
+[五子棋投降]\n\
 [五子棋掀桌]"
     output(info, Str)
 
@@ -1592,13 +1593,15 @@ def runningGomokuGame(info: _Info):
     if Dict.get("operationType", "NULL") == "掀桌":
         output(info, "有人掀桌！游戏状态已重置！")
         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        changeScore(Dict.get("scoreChangeList", {}))
         Dict:dict = groupGomoku[info.autoGroupNumber].reset()
         return
-    if Dict.get("operationType", "NULL") == "对局结束":
+    if Dict.get("operationType", "NULL") == "对局结束" or Dict.get("operationType", "NULL") == "玩家投降":
         img = getImage(Dict.get("imagePath", "NULL"))
         output(info, "", topImg=img)
         output(info, f"游戏结束！恭喜玩家【{getName(Dict.get('winner', 0))}({Dict.get('winner', 0)})】获得胜利！")
         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
+        changeScore(Dict.get("scoreChangeList", {}))
         Dict:dict = groupGomoku[info.autoGroupNumber].reset()
 
 
