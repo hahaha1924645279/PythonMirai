@@ -1072,7 +1072,7 @@ def showGomokuGame(info):
 [加入五子棋]\n\
 [离开五子棋]\n\
 [落子 行 列]\n\
-[当前对局信息]\n\
+[五子棋对局信息]\n\
 [五子棋掀桌]"
     output(info, Str)
 
