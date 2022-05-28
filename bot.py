@@ -35,6 +35,7 @@ teaRoomState = {}
 teaRoomAutoStatePath = './Data/teaRoomAutoState.txt'
 teaRoomAutoState = {}
 lastSender = {}
+lastAtTime = {}
 lianCount = {}
 msgCount = {}
 countLimitPath = "./Data/countLimit.txt"
@@ -305,6 +306,9 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     # changeLastSendGroup(info.autoFriendNumber, info.autoGroupNumber)
     t3 = threading.Thread(target=messageMatchReply, args=(info,))
     t3.start()
+    if msg.at_me() and time.time() - int(lastAtTime.get(info.autoGroupNumber, 0)) > 600:
+        output(info, "有什么事吗？发送[菜单]可以查看我的功能列表哦~", needAt=True)
+        lastAtTime[info.autoGroupNumber] = time.time()
     # runningMoveStoneGame(info)
     # runningFightTheLandlordGame(info)
     # messageMatchReply(info)
