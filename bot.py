@@ -942,6 +942,14 @@ def specialConcernSystem(info: _Info):
         return
 
 
+def showUpdateNotice(info: _Info):
+    Str = "\
+[2022.05.26]本次更新内容有：\n\
+1.新增【特别关心】功能项\n\
+2.【娱乐系统】新增游戏【五子棋】\
+"
+    output(info, Str)
+
 
 def messageMatchReply(info):
     #   群管系统
@@ -989,6 +997,9 @@ def messageMatchReply(info):
         return
     if info.autoPlain == "菜单":
         showMenu(info)
+        return
+    if info.autoPlain == "更新公告":
+        showUpdateNotice(info)
         return
     
 
@@ -1245,7 +1256,8 @@ def showMenu(info):
 Ο个人信息Ο便民工具Ο\n\
 Ο茶馆系统Ο娱乐系统Ο\n\
 Ο群管系统Ο积分排行Ο\n\
-Ο传话系统Ο特别关心Ο"
+Ο传话系统Ο特别关心Ο\n\
+Ο更新公告Ο等待开发Ο"
     output(info,  menu)
 
 
