@@ -1,11 +1,8 @@
 from PIL import Image, ImageFont, ImageDraw
-import numpy
 import random
 import re
 import time
 import os
-
-from cv2 import checkChessboard
  
 """""
 返回的Json应当包含元素：{"state" : "running/waiting", "nowOperator": playerID , "active":True/False, "legal":True/False,
@@ -74,6 +71,7 @@ class Gomoku:
     def checkResult(self, y, x):
         x = num[str(x)]
         y = num[str(y)]
+        print(f"检索棋盘位置[{x}][{y}]")
         Type = self.chessBoard[x][y]
         number = 1
         tempx,tempy = x-1,y
@@ -263,14 +261,14 @@ class Gomoku:
             self.playerArr.remove(playerID)
             self.backMsg = "好的"
             return self.makeDict()
-        if self.state == "running" and self.getNowOperator() == playerID and re.match("落子 * *", Str):
+        if self.state == "running" and self.getNowOperator() == playerID and (re.match("落子.*", Str) or re.match("LZ.*", Str)):
             self.active = True
-            if num.get(str(self.autoArgument[1]), 0) == 0 or num.get(str(self.autoArgument[2]), 0) == 0:
+            if  len(self.autoArgument[0]) != 4 or num.get(str(self.autoArgument[0][2]), 0) == 0 or num.get(str(self.autoArgument[0][3]), 0) == 0:
                 self.operationType = "不合法"
                 self.backMsg = "你坐标参数不对吧"
                 return self.makeDict()
 
-            if not self.checkLocation(self.autoArgument[1], self.autoArgument[2]):
+            if not self.checkLocation(self.autoArgument[0][2], self.autoArgument[0][3]):
                 self.operationType = "不合法"
                 self.backMsg = "你选的位置已经有棋子啦"
                 return self.makeDict()
@@ -280,8 +278,8 @@ class Gomoku:
             self.nowOperatorIdx += 1
             self. nowOperatorIdx %= 2
             self.backMsg = "操作成功！正在更新对局信息..."
-            self.moveInChess(self.autoArgument[1], self.autoArgument[2])
-            if self.checkResult(self.autoArgument[1], self.autoArgument[2]):
+            self.moveInChess(self.autoArgument[0][2], self.autoArgument[0][3])
+            if self.checkResult(self.autoArgument[0][2], self.autoArgument[0][3]):
                 self.operationType = "对局结束"
                 self.backMsg = "游戏结束！"
                 self.winner = playerID
@@ -300,3 +298,6 @@ class Gomoku:
 
 if __name__ == "__main__":
     T = Gomoku(123)
+    T.running(1,"加入五子棋")
+    T.running(2,"加入五子棋")
+

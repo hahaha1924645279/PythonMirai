@@ -2,7 +2,7 @@
 from concurrent.futures import thread
 import random
 import threading
-
+import copy
 from matplotlib.pyplot import get
 import miraicle
 import json
@@ -10,11 +10,9 @@ import re
 import time
 import requests
 import MoveStoneGame
-# import MoveStoneGameBotModel
 import FightTheLandlordGame
 import Gomoku
 import miraicle.createImg as createImg
-import ImageToText
 from requests.packages import urllib3
 
 urllib3.disable_warnings()
@@ -1086,7 +1084,10 @@ def showGomokuGame(info):
 游戏涉及到的指令如下:\n\
 [加入五子棋]\n\
 [离开五子棋]\n\
-[落子 行 列]\n\
+[落子行列]\n\
+指令说明：将棋子下至(行,列)\n\
+[LZ行列]\n\
+指令说明：将棋子下至(行,列)\n\
 [五子棋对局信息]\n\
 [五子棋投降]\n\
 [五子棋掀桌]"
@@ -1571,7 +1572,6 @@ def runningMoveStoneGame(info: _Info):
 #         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
 #         personalMoveStone[info.autoFriendNumber].reset()
 
-
 #   五子棋
 def runningGomokuGame(info: _Info):
     if groupGomoku.get(info.autoGroupNumber, None) is None:
@@ -1580,7 +1580,7 @@ def runningGomokuGame(info: _Info):
     if not Dict.get("active", False):
         return
     if Dict.get("operationType", "NULL") == "不合法" or Dict.get("operationType", "NULL") == "加入对局" or Dict.get("operationType", "NULL") == "离开对局":
-        output(info, Dict.get("backMsg", "NULL"), needAt=True)
+        output(info, Dict.get("backMsg", "NULL"), needAt=False)
         return
     if Dict.get("operationType", "NULL") == "询问对局信息":
         output(info, Dict.get("backMsg", "NULL"))
@@ -1591,7 +1591,7 @@ def runningGomokuGame(info: _Info):
         img = getImage(Dict.get("imagePath", "NULL"))
         output(info, "", topImg=img)
         nowOp = Dict.get("nowOperator", 0)
-        output(info, f"接下来轮到【{getName(nowOp)}】({nowOp})进行操作\n操作示例:[落子 5 A]")
+        output(info, f"接下来轮到【{getName(nowOp)}】({nowOp})进行操作\n操作示例:[落子5A]或[LZ5A]")
         return
     if Dict.get("operationType", "NULL") == "落子":
         output(info, "操作成功!正在更新对局信息...")
@@ -1625,7 +1625,6 @@ def runningGomokuGame(info: _Info):
         output(info, getScoreChangeInfo(Dict.get("scoreChangeList", {})))
         changeScore(Dict.get("scoreChangeList", {}))
         Dict:dict = groupGomoku[info.autoGroupNumber].reset()
-
 
 #   斗地主
 def runningFightTheLandlordGame(info: _Info):
