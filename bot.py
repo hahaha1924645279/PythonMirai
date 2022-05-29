@@ -65,6 +65,7 @@ specialConcernPath = "./Data/specialConcern.txt"
 specialConcern = {}
 beSpecialConcernPath = "./Data/beSpecialConcern.txt"
 beSpecialConcern = {}
+groupQueryMsg = {}
 
 
 with open(userScorePath, 'r') as f:
@@ -307,6 +308,7 @@ def solveGroupMessage(bot: miraicle.Mirai, msg: miraicle.GroupMessage):
     if msg.at_me() and time.time() - int(lastAtTime.get(info.autoGroupNumber, 0)) > 600:
         output(info, "有什么事吗？发送[菜单]可以查看我的功能列表哦~", needAt=True)
         lastAtTime[info.autoGroupNumber] = time.time()
+    someTest(info)
     # runningMoveStoneGame(info)
     # runningFightTheLandlordGame(info)
     # messageMatchReply(info)
@@ -376,7 +378,6 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
         if msg.plain == "清空被踢数据":
             clearKickBotNumber()
             output(info, "已清空")
-        someTest(info)
     if getName(info.autoFriendNumber) == "无名氏":
         setName(info, info.autoName)
     if re.match("更新数据", info.autoPlain) and info.autoFriendNumber == 1924645279:
@@ -386,7 +387,30 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
     messageMatchReply(info)
 
 
-def someTest(info):
+def someTest(info:_Info):
+    # print(info.autoMsgJson)
+    if groupQueryMsg.get(info.autoGroupNumber, 0) != 0:
+        output(info, info.autoPlain, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
+        groupQueryMsg[info.autoGroupNumber] = 0
+    sign = False
+    if str(info.autoPlain).count('？') > 0:
+        sign = True
+    if str(info.autoPlain).count('?') > 0:
+        sign = True
+    if str(info.autoPlain).count('吗') > 0:
+        sign = True
+    if str(info.autoPlain).count('是') > 0:
+        sign = True
+    if str(info.autoPlain).count('有没有') > 0:
+        sign = True
+    if sign and not info.isFriend:
+        groupLen = len(groupList)
+        idx = 0
+        idx = random.randint(0, groupLen - 1)
+        while groupList[idx] == info.autoGroupNumber:
+            idx = random.randint(0, groupLen - 1)
+        output(info, info.autoPlain ,newGroupNumber=groupList[idx])
+        groupQueryMsg[groupList[idx]] = info.autoGroupNumber
     pass
 
 
@@ -1378,17 +1402,20 @@ def updateTime():
 
 
 #   回复信息
-def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
+def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGroupNumber=0):
     aimQQ = info.autoFriendNumber
+    aimGroup = info.autoGroupNumber
+    if newGroupNumber != 0:
+        aimGroup = newGroupNumber
     if newQQ != 0:
         aimQQ = newQQ
     if topImg is not None:
         if not info.isFriend and not personal:
             if needAt:
                 info.autoBot.send_group_msg(
-                    info.autoGroupNumber,
+                    aimGroup,
                     msg=[
-                        miraicle.At(info.autoFriendNumber),
+                        miraicle.At(aimQQ),
                         miraicle.Plain("\n"),
                         topImg,
                         miraicle.MiraiCode(f"{Str}")
@@ -1396,7 +1423,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 )
             else:
                 info.autoBot.send_group_msg(
-                    info.autoGroupNumber,
+                    aimGroup,
                     msg=[
                         topImg,
                         miraicle.MiraiCode(f"{Str}")
@@ -1426,7 +1453,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
         if not info.isFriend and not personal:
             if needAt:
                 info.autoBot.send_group_msg(
-                    info.autoGroupNumber,
+                    aimGroup,
                     msg=[
                         miraicle.At(aimQQ),
                         miraicle.Plain("\n"),
@@ -1435,7 +1462,7 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0):
                 )
             else:
                 info.autoBot.send_group_msg(
-                    info.autoGroupNumber,
+                    aimGroup,
                     msg=[
                         miraicle.MiraiCode(f"{Str}")
                     ]
