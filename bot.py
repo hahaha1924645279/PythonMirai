@@ -390,7 +390,7 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 def someTest(info:_Info):
     # print(info.autoMsgJson)
     if groupQueryMsg.get(info.autoGroupNumber, 0) != 0:
-        output(info, info.autoPlain, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
+        output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
         groupQueryMsg[info.autoGroupNumber] = 0
     sign = False
     if str(info.autoPlain).count('？') > 0:
@@ -398,8 +398,6 @@ def someTest(info:_Info):
     if str(info.autoPlain).count('?') > 0:
         sign = True
     if str(info.autoPlain).count('吗') > 0:
-        sign = True
-    if str(info.autoPlain).count('是') > 0:
         sign = True
     if str(info.autoPlain).count('有没有') > 0:
         sign = True
