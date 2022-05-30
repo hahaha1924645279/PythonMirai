@@ -401,13 +401,21 @@ def someTest(info:_Info):
         sign = True
     if str(info.autoPlain).count('有没有') > 0:
         sign = True
+    if str(info.autoPlain).count('怎么') > 0:
+        sign = True
+    if str(info.autoPlain).count('为啥') > 0:
+        sign = True
+    if str(info.autoPlain).count('为何') > 0:
+        sign = True
+    if str(info.autoPlain).count('为什么') > 0:
+        sign = True
     if sign and not info.isFriend:
         groupLen = len(groupList)
         idx = 0
         idx = random.randint(0, groupLen - 1)
         while groupList[idx] == info.autoGroupNumber:
             idx = random.randint(0, groupLen - 1)
-        output(info, info.autoPlain ,newGroupNumber=groupList[idx])
+        output(info, info.autoFullMsg ,newGroupNumber=groupList[idx])
         groupQueryMsg[groupList[idx]] = info.autoGroupNumber
     pass
 
