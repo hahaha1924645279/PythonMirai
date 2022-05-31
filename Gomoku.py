@@ -69,9 +69,11 @@ class Gomoku:
         self.image.save(self.imagePath)
 
     def checkResult(self, y, x):
-        x = num[str(x)]
-        y = num[str(y)]
-        print(f"检索棋盘位置[{x}][{y}]")
+        print(f"y = {y}, and x = {x}")
+        print(f"Dict y = {num.get(str(y), -1)}, x = {num.get(str(x), -1)}")
+        x = int(num[str(x)])
+        y = int(num[str(y)])
+        print(f"检索棋盘位置[{y}][{x}]")
         Type = self.chessBoard[x][y]
         number = 1
         tempx,tempy = x-1,y
@@ -123,24 +125,26 @@ class Gomoku:
         while tempy>=1 and tempx<=15 and self.chessBoard[tempx][tempy] == Type:
             number += 1
             tempy -= 1
+            tempx += 1
         tempx = x-1
         tempy = y+1
         while tempy<=15 and tempx>=1 and self.chessBoard[tempx][tempy] == Type:
             number += 1
             tempy += 1
+            tempx -= 1
 
         if number >=5 :
             return True
         return False
 
     def checkLocation(self, y, x):
-        x = num[str(x)]
-        y = num[str(y)]
+        x = int(num[str(x)])
+        y = int(num[str(y)])
         return self.chessBoard[x][y] == 0
 
     def moveInChess(self, Y, X):
-        Y = num[str(Y)]
-        X = num[str(X)]
+        Y = int(num[str(Y)])
+        X = int(num[str(X)])
         lastType = self.lastOperation[0]
         x,y = getPos(self.lastOperation[1], self.lastOperation[2])
         if lastType == 0:
@@ -301,3 +305,76 @@ if __name__ == "__main__":
     T.running(1,"加入五子棋")
     T.running(2,"加入五子棋")
 
+    T.running(1, "落子91")
+    T.running(2, "落子A1")
+    T.running(1, "落子92")
+    T.running(2, "落子A2")
+    T.running(1, "落子93")
+    T.running(2, "落子A3")
+    
+    T.running(1, "落子A4")
+    T.running(2, "落子94")
+    T.running(1, "落子A5")
+    T.running(2, "落子95")
+    T.running(1, "落子A6")
+    T.running(2, "落子96")
+    
+    T.running(1, "落子97")
+    T.running(2, "落子A7")
+    T.running(1, "落子98")
+    T.running(2, "落子A8")
+    T.running(1, "落子99")
+    T.running(2, "落子A9")
+    
+    T.running(1, "落子AA")
+    T.running(2, "落子9A")
+    T.running(1, "落子AB")
+    T.running(2, "落子9B")
+    T.running(1, "落子AC")
+    T.running(2, "落子9C")
+    
+    T.running(1, "落子9D")
+    T.running(2, "落子AD")
+    T.running(1, "落子9E")
+    T.running(2, "落子AE")
+    T.running(1, "落子9F")
+    T.running(2, "落子AF")
+    # ----------------------------
+    
+    T.running(1, "落子71")
+    T.running(2, "落子81")
+    T.running(1, "落子72")
+    T.running(2, "落子82")
+    T.running(1, "落子73")
+    T.running(2, "落子83")
+    
+    T.running(1, "落子84")
+    T.running(2, "落子74")
+    T.running(1, "落子85")
+    T.running(2, "落子75")
+    T.running(1, "落子86")
+    T.running(2, "落子76")
+    
+    T.running(1, "落子77")
+    T.running(2, "落子87")
+    T.running(1, "落子78")
+    T.running(2, "落子88")
+    T.running(1, "落子79")
+    T.running(2, "落子89")
+    
+    T.running(1, "落子8A")
+    T.running(2, "落子7A")
+    T.running(1, "落子8B")
+    T.running(2, "落子7B")
+    T.running(1, "落子8C")
+    T.running(2, "落子7C")
+    
+    T.running(1, "落子7D")
+    T.running(2, "落子8D")
+    T.running(1, "落子7E")
+    T.running(2, "落子8E")
+    T.running(1, "落子7F")
+    T.running(2, "落子8F")
+
+
+    

@@ -66,6 +66,8 @@ specialConcern = {}
 beSpecialConcernPath = "./Data/beSpecialConcern.txt"
 beSpecialConcern = {}
 groupQueryMsg = {}
+globalBannedWordsPath = "./Data/globalBannedWords.txt"
+globalBannedWords = {}
 
 
 with open(userScorePath, 'r') as f:
@@ -104,6 +106,8 @@ with open(specialConcernPath, 'r') as f:
     specialConcern = json.load(f)
 with open(beSpecialConcernPath, 'r') as f:
     beSpecialConcern = json.load(f)
+with open(globalBannedWordsPath, 'r') as f:
+    globalBannedWords = json.load(f)
 
 
 def getCodeForcesContestInfo():
@@ -195,6 +199,8 @@ def update(bot):
         f.write(json.dumps(beSpecialConcern))
     with open(specialConcernPath, 'w') as f:
         f.write(json.dumps(specialConcern))
+    with open(globalBannedWordsPath, 'w') as f:
+        f.write(json.dumps(globalBannedWords))
 
 
 @miraicle.scheduled_job(miraicle.Scheduler.every().day.at('12:00:00'))
@@ -389,8 +395,10 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 
 def someTest(info:_Info):
     # print(info.autoMsgJson)
+    groupNumber = 0
     if groupQueryMsg.get(info.autoGroupNumber, 0) != 0:
         output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
+        groupNumber = groupQueryMsg.get(info.autoGroupNumber, 0)
         groupQueryMsg[info.autoGroupNumber] = 0
     sign = False
     if str(info.autoPlain).count('？') > 0:
@@ -409,13 +417,29 @@ def someTest(info:_Info):
         sign = True
     if str(info.autoPlain).count('为什么') > 0:
         sign = True
+    if str(info.autoPlain).count('谁知道') > 0:
+        sign = True
+    if str(info.autoPlain).count('什么') > 0:
+        sign = True
+    if str(info.autoPlain).count('究竟是') > 0:
+        sign = True
+    if str(info.autoPlain).count('难不成') > 0:
+        sign = True
+    if str(info.autoPlain).count('请问') > 0:
+        sign = True
+    if str(info.autoPlain).count('到底') > 0:
+        sign = True
+    if len(info.autoPlain) < 10 or checkExistGlobalBannedWords(info.autoPlain):
+        sign=False
     if sign and not info.isFriend:
         groupLen = len(groupList)
         idx = 0
         idx = random.randint(0, groupLen - 1)
         while groupList[idx] == info.autoGroupNumber:
             idx = random.randint(0, groupLen - 1)
-        output(info, info.autoFullMsg ,newGroupNumber=groupList[idx])
+        if groupNumber == 0:
+            groupNumber = groupList[idx]
+        output(info, info.autoFullMsg ,newGroupNumber=groupNumber)
         groupQueryMsg[groupList[idx]] = info.autoGroupNumber
     pass
 
@@ -518,6 +542,12 @@ def getBannedWordsList(groupNumber):
 def checkExistBannedWords(groupNumber, Str):
     for word in bannedWords.get(str(groupNumber), {}):
         if bannedWords.get(str(groupNumber), {}).get(word, False) and Str.find(word) != -1:
+            return True
+    return False
+
+def checkExistGlobalBannedWords(Str):
+    for word in globalBannedWords:
+        if globalBannedWords.get(word, False) and Str.find(word) != -1:
             return True
     return False
 
@@ -648,6 +678,9 @@ def passOnMsgSystem(info):
             if getRefusePassOnAMsgState(queryPassOnAMsgNumber(info.autoFriendNumber)):
                 output(info, "对方拒绝被传话")
                 setPassOnAMsgNumber(info.autoFriendNumber, 0)
+                return
+            if checkExistGlobalBannedWords(info.autoPlain):
+                output(info, "存在违禁词，禁止发送")
                 return
             if sentMsgToSomeOne(info, getPassOnAMsgNumber(info.autoFriendNumber), info.autoFullMsg):
                 output(info, "传话成功")
@@ -809,12 +842,15 @@ def teaRoomSystem(info):
     if re.match("茶馆 .*", info.autoPlain) is not None:
         updateTime()
         if getTeaState(info.autoFriendNumber):
-            if not info.isFriend:
-                output(info, f"[online:{getTeaRoomPeopleNumber()}]好嘞，小的这就帮您转达", True)
             Str = ""
             for i in info.autoArguments[1:]:
                 Str += i
                 Str += ' '
+            if checkExistGlobalBannedWords(info.autoPlain):
+                output(info, "存在违禁词，禁止发送")
+                return
+            if not info.isFriend:
+                output(info, f"[online:{getTeaRoomPeopleNumber()}]好嘞，小的这就帮您转达", True)
             if info.autoImage is not None:
                 Str += f"[mirai:image:{info.autoImage.image_id}]"
             sentTeaRoomMessage(info, Str)
@@ -983,7 +1019,11 @@ def showUpdateNotice(info: _Info):
     output(info, Str)
 
 
-def messageMatchReply(info):
+def setGlobalBannedWords(str, state):
+    globalBannedWords[str] = state
+
+
+def messageMatchReply(info: _Info):
     #   群管系统
     t7 = threading.Thread(target=groupRegulateSystem, args=(info,))
     t7.start()
@@ -1032,6 +1072,23 @@ def messageMatchReply(info):
         return
     if info.autoPlain == "更新公告":
         showUpdateNotice(info)
+        return
+    if isAdmin(info.autoFriend) and re.match("添加全局违禁词 .*", info.autoPlain):
+        for words in info.autoArguments[1:]:
+            setGlobalBannedWords(words, True)
+        output(info, "好的")
+        return
+    if isAdmin(info.autoFriend) and re.match("删除全局违禁词 .*", info.autoPlain):
+        for words in info.autoArguments[1:]:
+            setGlobalBannedWords(words, False)
+        output(info, "好的")
+        return
+    if isAdmin(info.autoFriend) and info.autoPlain == "查看全局违禁词":
+        Str = ""
+        for words in info.autoArguments[1:]:
+            Str += f" {words}"
+        output(info, "好的，已私发")
+        output(info, Str, personal=True)
         return
     
 

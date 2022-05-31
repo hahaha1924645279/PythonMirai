@@ -34,14 +34,5 @@
 #         self.a = 0
 #         self.b = 0
 
-# t1 = Test()
-# t2 = copy.deepcopy(t1)
-# t1.a = 5
-# t1.b = 5
-# print(t2.a)
-# print(t2.b)
-
-# l1 = [1,2,3]
-# l2 = copy.deepcopy(l1)
-# l2[1] = 10
-# print(l1)
+a = "这只是"
+print(len(a))
