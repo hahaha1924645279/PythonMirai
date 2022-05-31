@@ -396,7 +396,7 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 def someTest(info:_Info):
     # print(info.autoMsgJson)
     groupNumber = 0
-    if groupQueryMsg.get(info.autoGroupNumber, 0) != 0:
+    if groupQueryMsg.get(info.autoGroupNumber, 0) != 0 and not checkExistGlobalBannedWords(info.autoPlain):
         output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
         groupNumber = groupQueryMsg.get(info.autoGroupNumber, 0)
         groupQueryMsg[info.autoGroupNumber] = 0
@@ -879,6 +879,9 @@ def teaRoomSystem(info):
         if getTeaRoomAutoState(info.autoFriendNumber):
             updateTime()
             if getTeaState(info.autoFriendNumber):
+                if checkExistGlobalBannedWords(info.autoPlain):
+                    output(info, "存在违禁词，禁止发送")
+                    return
                 sentTeaRoomMessage(info, getFullMsgInfo(info.autoMsgJson))
             return
     
@@ -1020,6 +1023,7 @@ def showUpdateNotice(info: _Info):
 
 
 def setGlobalBannedWords(str, state):
+    global globalBannedWords
     globalBannedWords[str] = state
 
 
@@ -1073,20 +1077,21 @@ def messageMatchReply(info: _Info):
     if info.autoPlain == "更新公告":
         showUpdateNotice(info)
         return
-    if isAdmin(info.autoFriend) and re.match("添加全局违禁词 .*", info.autoPlain):
+    if isAdmin(info.autoFriendNumber) and re.match("添加全局违禁词 .*", info.autoPlain):
         for words in info.autoArguments[1:]:
             setGlobalBannedWords(words, True)
         output(info, "好的")
         return
-    if isAdmin(info.autoFriend) and re.match("删除全局违禁词 .*", info.autoPlain):
+    if isAdmin(info.autoFriendNumber) and re.match("删除全局违禁词 .*", info.autoPlain):
         for words in info.autoArguments[1:]:
             setGlobalBannedWords(words, False)
         output(info, "好的")
         return
-    if isAdmin(info.autoFriend) and info.autoPlain == "查看全局违禁词":
+    if isAdmin(info.autoFriendNumber) and info.autoPlain == "全局违禁词列表":
         Str = ""
-        for words in info.autoArguments[1:]:
-            Str += f" {words}"
+        for words in globalBannedWords:
+            if globalBannedWords.get(words, False):
+                Str += f" {words}"
         output(info, "好的，已私发")
         output(info, Str, personal=True)
         return
