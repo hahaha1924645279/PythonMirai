@@ -17,7 +17,7 @@ Const = 50
 D = 36
 chessBoard = Image.open(f"{path}/Data/Gomoku/chessboard.png")
 fontPath = rf"{path}/Data/Font/GB2312.ttf"
-font = ImageFont.truetype(fontPath, 20)
+font = ImageFont.truetype(fontPath, 25)
 black = Image.open(f"{path}/Data/Gomoku/black.png")
 white = Image.open(f"{path}/Data/Gomoku/white.png")
 black_last = Image.open(f"{path}/Data/Gomoku/black_last.png")
@@ -34,7 +34,7 @@ class Gomoku:
         self.chessBoardID = chessBoardID
         self.imagePath = f"{path}/Data/Gomoku/chessBoard-{chessBoardID}.png"
         self.image = Image.new(mode='RGB', size=(590,590), color="white")
-        self.image.paste(chessBoard, (Const+10,Const+8))
+        self.image.paste(chessBoard, (Const+10,Const+10))
         dr = ImageDraw.Draw(self.image)
         for i in range(1, 16):
             x,y = getPos(1,i)

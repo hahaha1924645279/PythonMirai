@@ -423,13 +423,11 @@ def someTest(info:_Info):
         sign = True
     if str(info.autoPlain).count('究竟是') > 0:
         sign = True
-    if str(info.autoPlain).count('难不成') > 0:
-        sign = True
     if str(info.autoPlain).count('请问') > 0:
         sign = True
     if str(info.autoPlain).count('到底') > 0:
         sign = True
-    if len(info.autoPlain) < 10 or checkExistGlobalBannedWords(info.autoPlain):
+    if len(info.autoPlain) < 20 or checkExistGlobalBannedWords(info.autoPlain):
         sign=False
     if sign and not info.isFriend:
         groupLen = len(groupList)
