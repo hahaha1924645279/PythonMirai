@@ -66,6 +66,7 @@ specialConcern = {}
 beSpecialConcernPath = "./Data/beSpecialConcern.txt"
 beSpecialConcern = {}
 groupQueryMsg = {}
+groupQueryMsgId = {}
 globalBannedWordsPath = "./Data/globalBannedWords.txt"
 globalBannedWords = {}
 
@@ -397,7 +398,7 @@ def someTest(info:_Info):
     # print(info.autoMsgJson)
     groupNumber = 0
     if groupQueryMsg.get(info.autoGroupNumber, 0) != 0 and not checkExistGlobalBannedWords(info.autoPlain):
-        output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0))
+        output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0), quoteId=groupQueryMsgId.get(info.autoGroupNumber, 0))
         groupNumber = groupQueryMsg.get(info.autoGroupNumber, 0)
         groupQueryMsg[info.autoGroupNumber] = 0
     sign = False
@@ -419,6 +420,8 @@ def someTest(info:_Info):
         sign = True
     if str(info.autoPlain).count('谁知道') > 0:
         sign = True
+    if str(info.autoPlain).count('不知道') > 0:
+        sign = True
     if str(info.autoPlain).count('什么') > 0:
         sign = True
     if str(info.autoPlain).count('究竟是') > 0:
@@ -426,6 +429,8 @@ def someTest(info:_Info):
     if str(info.autoPlain).count('请问') > 0:
         sign = True
     if str(info.autoPlain).count('到底') > 0:
+        sign = True
+    if str(info.autoPlain).count('何处') > 0:
         sign = True
     if len(info.autoPlain) < 20 or checkExistGlobalBannedWords(info.autoPlain):
         sign=False
@@ -439,6 +444,7 @@ def someTest(info:_Info):
             groupNumber = groupList[idx]
         output(info, info.autoFullMsg ,newGroupNumber=groupNumber)
         groupQueryMsg[groupList[idx]] = info.autoGroupNumber
+        groupQueryMsgId[groupList[idx]] = info.autoMsgId
     pass
 
 
@@ -687,6 +693,14 @@ def passOnMsgSystem(info):
             return
 
 
+def getQuoteMsgId(info:_Info):
+    tempList = info.autoMsgJson.get('messageChain', [])
+    for tempJson in tempList:
+        if tempJson.get('type', None) == 'Quote':
+            return tempJson.get('id', 0)
+    return 0
+
+
 def groupRegulateSystem(info):
     if not info.isFriend:
         t1 = threading.Thread(target=runCheckExistBannedWords, args=(info,))
@@ -789,6 +803,10 @@ def groupRegulateSystem(info):
                     info.autoBot.unmute_all(info.autoGroupNumber)
                     output(info, "好的")
             return
+        if info.autoPlain.find("撤回") != -1 and (isAdmin(info.autoFriendNumber) or haveAdm):
+            info.autoBot.recall(getQuoteMsgId(info))
+            return
+
     if info.autoPlain == "我信息呢":
         output(info, "好啦好啦，发给你就是了...")
         output(info, lastRecallMsg.get(f'{str(info.autoFriendNumber)}', ""), personal=True)
@@ -1281,6 +1299,7 @@ def showGroupRegulateSystem(info):
 [删除违禁词 违禁词(可以多个,以空格隔开)]\n\
 [违禁词列表]\n\
 [清空违禁词]\n\
+[(引用目标消息)撤回]\n\
 [刷屏限制 发言数]\n\
 [开启违禁词禁言]\n\
 [关闭违禁词禁言]\n\
@@ -1468,7 +1487,7 @@ def updateTime():
 
 
 #   回复信息
-def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGroupNumber=0):
+def output(info:_Info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGroupNumber=0, quoteId=None):
     aimQQ = info.autoFriendNumber
     aimGroup = info.autoGroupNumber
     if newGroupNumber != 0:
@@ -1485,7 +1504,8 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGr
                         miraicle.Plain("\n"),
                         topImg,
                         miraicle.MiraiCode(f"{Str}")
-                    ]
+                    ],
+                    quote=quoteId
                 )
             else:
                 info.autoBot.send_group_msg(
@@ -1493,7 +1513,8 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGr
                     msg=[
                         topImg,
                         miraicle.MiraiCode(f"{Str}")
-                    ]
+                    ],
+                    quote=quoteId
                 )
         else:
             if info.autoBot.send_friend_msg(
@@ -1524,14 +1545,16 @@ def output(info,  Str, needAt=False, topImg=None, personal=False, newQQ=0, newGr
                         miraicle.At(aimQQ),
                         miraicle.Plain("\n"),
                         miraicle.MiraiCode(f"{Str}")
-                    ]
+                    ],
+                    quote=quoteId
                 )
             else:
                 info.autoBot.send_group_msg(
                     aimGroup,
                     msg=[
                         miraicle.MiraiCode(f"{Str}")
-                    ]
+                    ],
+                    quote=quoteId
                 )
         else:
             if info.autoBot.send_friend_msg(

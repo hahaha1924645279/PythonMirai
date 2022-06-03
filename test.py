@@ -35,4 +35,4 @@
 #         self.b = 0
 
 a = "这只是"
-print(len(a))
+print(a.find("牛"))
