@@ -69,6 +69,7 @@ groupQueryMsg = {}
 groupQueryMsgId = {}
 globalBannedWordsPath = "./Data/globalBannedWords.txt"
 globalBannedWords = {}
+autoQueryLen = 15
 
 
 with open(userScorePath, 'r') as f:
@@ -396,6 +397,11 @@ def solveFriendMessage(bot: miraicle.Mirai, msg: miraicle.FriendMessage):
 
 def someTest(info:_Info):
     # print(info.autoMsgJson)
+    global autoQueryLen
+    if info.autoFriendNumber == 1924645279 and re.match("问答长度限制 [0-9]+", info.autoPlain):
+        output(info, "好的")
+        autoQueryLen = int(info.autoArguments[1])
+        return
     groupNumber = 0
     if groupQueryMsg.get(info.autoGroupNumber, 0) != 0 and not checkExistGlobalBannedWords(info.autoPlain):
         output(info, info.autoFullMsg, newGroupNumber=groupQueryMsg.get(info.autoGroupNumber, 0), quoteId=groupQueryMsgId.get(info.autoGroupNumber, 0))
@@ -432,7 +438,7 @@ def someTest(info:_Info):
         sign = True
     if str(info.autoPlain).count('何处') > 0:
         sign = True
-    if len(info.autoPlain) < 20 or checkExistGlobalBannedWords(info.autoPlain):
+    if len(info.autoPlain) < autoQueryLen or checkExistGlobalBannedWords(info.autoPlain):
         sign=False
     if sign and not info.isFriend:
         groupLen = len(groupList)
